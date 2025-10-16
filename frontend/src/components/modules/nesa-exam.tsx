@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,13 +10,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, FileText, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { Loader2, FileText, ChevronLeft, ChevronRight, Download, Trash2, Calendar, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { focuslyApi } from "@/lib/api";
-import type { NESAExam, NESAQuestion, NESAModuleName } from "@/types";
+import type { NESAExam, NESAQuestion, NESAModuleName, ModuleOutputRecord } from "@/types";
 import { PythonEditor } from "@/components/nesa/python-editor";
 import { SQLEditor } from "@/components/nesa/sql-editor";
 import { DiagramCanvas } from "@/components/nesa/diagram-canvas";
+import { format } from "date-fns";
 
 const formSchema = z.object({
   modules: z.array(z.string()).min(1, "Select at least one module"),
@@ -39,6 +40,8 @@ export function NESAExamModule() {
   const [exam, setExam] = useState<NESAExam | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
+  const [savedExams, setSavedExams] = useState<ModuleOutputRecord[]>([]);
+  const [loadingExams, setLoadingExams] = useState(true);
 
   const {
     register,
@@ -57,6 +60,21 @@ export function NESAExamModule() {
   });
 
   const selectedModules = watch("modules");
+
+  useEffect(() => {
+    const loadExams = async () => {
+      try {
+        const { exams } = await focuslyApi.getNESAExams();
+        setSavedExams(exams);
+      } catch (error) {
+        console.error("Failed to load exams:", error);
+      } finally {
+        setLoadingExams(false);
+      }
+    };
+
+    loadExams();
+  }, []);
 
   const toggleModule = (module: string) => {
     const current = selectedModules || [];
@@ -80,11 +98,38 @@ export function NESAExamModule() {
       setCurrentQuestionIndex(0);
       setUserAnswers({});
       toast.success("Exam generated successfully!");
+
+      // Refresh saved exams list
+      const { exams } = await focuslyApi.getNESAExams();
+      setSavedExams(exams);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to generate exam";
       toast.error(errorMessage);
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleContinueExam = (savedExam: ModuleOutputRecord) => {
+    const examData = savedExam.output as NESAExam;
+    setExam(examData);
+    setCurrentQuestionIndex(0);
+    setUserAnswers({});
+  };
+
+  const handleDeleteExam = async (id: string) => {
+    try {
+      await focuslyApi.deleteNESAExam(id);
+      setSavedExams((prev) => prev.filter((e) => e.id !== id));
+      toast.success("Exam deleted");
+
+      // If the currently active exam was deleted, clear it
+      if (exam && savedExams.find(e => e.id === id && (e.output as NESAExam).examTitle === exam.examTitle)) {
+        setExam(null);
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete exam";
+      toast.error(errorMessage);
     }
   };
 
@@ -226,7 +271,68 @@ export function NESAExamModule() {
 
   if (!exam) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="space-y-6">
+        {savedExams.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5" />
+                Saved Exams
+              </CardTitle>
+              <CardDescription>
+                Continue or delete your previous exams
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {loadingExams ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  savedExams.map((savedExam) => {
+                    const examData = savedExam.output as NESAExam;
+                    return (
+                      <div
+                        key={savedExam.id}
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition"
+                      >
+                        <div className="flex-1">
+                          <h3 className="font-medium">{examData.examTitle}</h3>
+                          <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {format(new Date(savedExam.createdAt), "MMM d, yyyy")}
+                            </span>
+                            <span>{examData.totalMarks} marks</span>
+                            <span>{examData.questions.length} questions</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleContinueExam(savedExam)}
+                          >
+                            Continue
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteExam(savedExam.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>Generate NESA Software Engineering Exam</CardTitle>

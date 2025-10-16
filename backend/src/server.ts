@@ -1446,6 +1446,21 @@ IMPORTANT:
   })
 );
 
+app.get(
+  "/api/nesa/exams",
+  withErrorBoundary(async (req, res) => {
+    const exams = await prisma.moduleOutput.findMany({
+      where: {
+        module: ModuleType.NESA_SOFTWARE_EXAM,
+        ...(req.currentUser ? { userId: req.currentUser.id } : {}),
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.json({ exams });
+  })
+);
+
 app.use((_req, res) => {
   res.status(404).json({ error: "Route not found." });
 });

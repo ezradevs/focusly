@@ -250,4 +250,12 @@ export const focuslyApi = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+
+  getNESAExams: () =>
+    request<{ exams: ModuleOutputRecord[] }>("/api/nesa/exams"),
+
+  deleteNESAExam: (id: string) =>
+    request<{ success: boolean }>(`/api/outputs/${id}`, {
+      method: "DELETE",
+    }),
 };

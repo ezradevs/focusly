@@ -45,21 +45,38 @@ export function SQLEditor({
   useEffect(() => {
     async function loadSQL() {
       try {
-        // Load sql.js from CDN to avoid Node.js module issues
-        const script = document.createElement("script");
-        script.src = "https://sql.js.org/dist/sql-wasm.js";
-        script.async = true;
+        // Check if sql.js is already loaded
+        // @ts-expect-error - initSqlJs is loaded from CDN script
+        if (!window.initSqlJs) {
+          // Load sql.js from CDN to avoid Node.js module issues
+          const script = document.createElement("script");
+          script.src = "https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js";
+          script.crossOrigin = "anonymous";
 
-        await new Promise<void>((resolve, reject) => {
-          script.onload = () => resolve();
-          script.onerror = () => reject(new Error("Failed to load sql.js"));
-          document.head.appendChild(script);
-        });
+          await new Promise<void>((resolve, reject) => {
+            script.onload = () => {
+              console.log("sql.js loaded successfully");
+              resolve();
+            };
+            script.onerror = () => {
+              console.error("Failed to load sql.js");
+              reject(new Error("Failed to load sql.js"));
+            };
+            document.head.appendChild(script);
+          });
+
+          // Give the script time to initialize
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
 
         // @ts-expect-error - initSqlJs is loaded from CDN script
         const initSqlJs = window.initSqlJs;
+        if (!initSqlJs) {
+          throw new Error("initSqlJs not available after loading script");
+        }
+
         const SQL = await initSqlJs({
-          locateFile: (file: string) => `https://sql.js.org/dist/${file}`,
+          locateFile: (file: string) => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`,
         });
 
         const db = new SQL.Database();
