@@ -6,7 +6,8 @@
       "Bash(npm install:*)",
       "Bash(cat:*)",
       "Bash(git init:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(npx prisma generate:*)"
     ],
     "deny": [],
     "ask": []
