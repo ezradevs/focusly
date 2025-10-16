@@ -5,7 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only --require tsconfig-paths/register src/server.ts",
-    "build": "prisma generate && tsc && node scripts/copy-server.js",
+    "build": "prisma generate && tsc && tsc-alias && node scripts/copy-server.js",
     "postinstall": "prisma generate",
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
@@ -30,6 +30,7 @@
     "jsonwebtoken": "^9.0.2",
     "openai": "^6.3.0",
     "prisma": "^6.17.1",
+    "tsc-alias": "^1.8.10",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.3",
     "zod": "^4.1.12"
