@@ -81,15 +81,53 @@ export function NotesSummariserModule() {
 
   const handleFileUpload = useCallback(
     async (file: File) => {
-      const allowedTypes = ["text/plain", "text/markdown", "application/json"];
+      const allowedTypes = ["text/plain", "text/markdown", "application/json", "application/pdf"];
       if (!allowedTypes.includes(file.type)) {
-        toast.error("Upload .txt, .md, or .json files only.");
+        toast.error("Upload .txt, .md, .json, or .pdf files only.");
         return;
       }
 
-      const text = await file.text();
-      form.setValue("text", text, { shouldDirty: true, shouldTouch: true });
-      toast.success(`Loaded ${file.name}`);
+      try {
+        let text = "";
+
+        if (file.type === "application/pdf") {
+          // Dynamically import PDF.js to avoid SSR issues
+          const pdfjsLib = await import("pdfjs-dist");
+
+          // Configure worker
+          pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+          // Extract text from PDF
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          const textParts: string[] = [];
+
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            const pageText = content.items
+              .map((item) => {
+                if ("str" in item) {
+                  return item.str;
+                }
+                return "";
+              })
+              .join(" ");
+            textParts.push(pageText);
+          }
+
+          text = textParts.join("\n\n");
+        } else {
+          // Handle text files
+          text = await file.text();
+        }
+
+        form.setValue("text", text, { shouldDirty: true, shouldTouch: true });
+        toast.success(`Loaded ${file.name}`);
+      } catch (error) {
+        console.error("File upload error:", error);
+        toast.error("Failed to read file. Please try again.");
+      }
     },
     [form]
   );
@@ -235,7 +273,7 @@ export function NotesSummariserModule() {
                       />
                     </FormControl>
                     <FormDescription>
-                      Supports Markdown. For files, upload a .txt or .md export.
+                      Supports Markdown. Upload .txt, .md, .json, or .pdf files.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -248,7 +286,7 @@ export function NotesSummariserModule() {
                   <span>Upload notes file</span>
                   <input
                     type="file"
-                    accept=".txt,.md,.json"
+                    accept=".txt,.md,.json,.pdf"
                     className="hidden"
                     onChange={(event) => {
                       const file = event.target.files?.[0];
