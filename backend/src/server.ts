@@ -78,6 +78,7 @@ const loginSchema = z.object({
 const outputsQuerySchema = z.object({
   module: z.nativeEnum(ModuleType).optional(),
   limit: z.coerce.number().min(1).max(100).optional(),
+  search: z.string().optional(),
 });
 
 const outputIdParamsSchema = z.object({
@@ -468,11 +469,19 @@ app.get(
   "/api/outputs",
   requireAuth,
   withErrorBoundary(async (req, res) => {
-    const { module, limit } = outputsQuerySchema.parse(req.query);
+    const { module, limit, search } = outputsQuerySchema.parse(req.query);
     const outputs = await prisma.moduleOutput.findMany({
       where: {
         userId: req.currentUser!.id,
         ...(module ? { module } : {}),
+        ...(search
+          ? {
+              OR: [
+                { label: { contains: search, mode: "insensitive" } },
+                { subject: { contains: search, mode: "insensitive" } },
+              ],
+            }
+          : {}),
       },
       orderBy: { createdAt: "desc" },
       take: limit ?? 50,

@@ -17,13 +17,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, Archive, LogIn, Loader2, LogOut, User2, Home, Settings, ChevronLeft, ChevronRight } from "lucide-react";
+import { Menu, Library, LogIn, Loader2, LogOut, User2, Home, Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthDialog } from "@/components/auth-dialog";
-import { SavedOutputsDrawer } from "@/components/saved-outputs-drawer";
 import { TutorChatbot } from "@/components/chatbot/tutor-chatbot";
 import { useAuthStore } from "@/store/auth";
 import { usePreferencesStore } from "@/store/preferences";
@@ -185,7 +184,6 @@ export function DashboardShell({
 }: DashboardShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
-  const [savedOpen, setSavedOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const status = useAuthStore((state) => state.status);
   const user = useAuthStore((state) => state.user);
@@ -251,18 +249,20 @@ export function DashboardShell({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setSavedOpen(true)}
                   disabled={!isAuthenticated}
                   className="gap-2"
+                  asChild
                 >
-                  <Archive className="h-4 w-4" />
-                  Saved
+                  <Link href="/library">
+                    <Library className="h-4 w-4" />
+                    Library
+                  </Link>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
                 {isAuthenticated
-                  ? "Review your saved outputs"
-                  : "Sign in to save and revisit outputs"}
+                  ? "View all your saved content"
+                  : "Sign in to access your library"}
               </TooltipContent>
             </Tooltip>
             {isLoadingAuth ? (
@@ -288,7 +288,6 @@ export function DashboardShell({
                   <DropdownMenuItem
                     onClick={() => {
                       void logout();
-                      setSavedOpen(false);
                     }}
                   >
                     <LogOut className="mr-2 h-4 w-4" />
@@ -347,7 +346,6 @@ export function DashboardShell({
         )}
       </div>
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
-      <SavedOutputsDrawer open={savedOpen} onOpenChange={setSavedOpen} />
       <TutorChatbot />
     </TooltipProvider>
   );

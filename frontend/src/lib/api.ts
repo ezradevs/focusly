@@ -159,10 +159,11 @@ export const focuslyApi = {
 
   currentUser: () => request<AuthResponse>("/api/auth/me"),
 
-  listOutputs: (params: { module?: StoredModuleType; limit?: number } = {}) => {
+  listOutputs: (params: { module?: StoredModuleType; limit?: number; search?: string } = {}) => {
     const query = new URLSearchParams();
     if (params.module) query.set("module", params.module);
     if (params.limit) query.set("limit", String(params.limit));
+    if (params.search) query.set("search", params.search);
     const suffix = query.toString() ? `?${query.toString()}` : "";
     return request<OutputsResponse>(`/api/outputs${suffix}`);
   },
