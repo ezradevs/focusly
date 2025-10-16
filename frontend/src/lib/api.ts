@@ -9,6 +9,8 @@ import type {
   StoredModuleType,
   SummaryResult,
   ChatRole,
+  NESAExam,
+  NESAModuleName,
 } from "@/types";
 
 const API_BASE_URL =
@@ -236,5 +238,16 @@ export const focuslyApi = {
   deleteAccount: () =>
     request<{ success: boolean }>("/api/auth/account", {
       method: "DELETE",
+    }),
+
+  generateNESAExam: (payload: {
+    modules: NESAModuleName[];
+    questionCount?: number;
+    includeMarkingGuide?: boolean;
+    seed?: string;
+  }) =>
+    request<NESAExam>("/api/nesa/generate", {
+      method: "POST",
+      body: JSON.stringify(payload),
     }),
 };

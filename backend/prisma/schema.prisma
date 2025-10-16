@@ -21,6 +21,7 @@ enum ModuleType {
   EXAM_PACK
   REVISION_PLAN
   LANGUAGE_PRACTICE
+  NESA_SOFTWARE_EXAM
 }
 
 model User {

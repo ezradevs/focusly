@@ -1200,6 +1200,252 @@ Return JSON:
   })
 );
 
+const nesaExamSchema = z.object({
+  modules: z.array(z.enum(["Secure Software Architecture", "Programming for the Web", "Software Engineering Project", "Automation"])).min(1),
+  questionCount: z.number().min(15).max(30).default(25),
+  includeMarkingGuide: z.boolean().default(false),
+  seed: z.string().optional(),
+});
+
+const nesaQuestionSchema = z.object({
+  id: z.string(),
+  type: z.enum(["mcq", "matching", "short-answer", "code", "extended"]),
+  questionNumber: z.number(),
+  marks: z.number(),
+  modules: z.array(z.string()),
+  prompt: z.string(),
+  options: z.array(z.object({
+    label: z.string(),
+    value: z.string(),
+  })).optional(),
+  matchingPairs: z.array(z.object({
+    left: z.string(),
+    right: z.string(),
+  })).optional(),
+  codeLanguage: z.enum(["python", "sql", "diagram"]).optional(),
+  codeStarter: z.string().optional(),
+  expectedOutput: z.string().optional(),
+  sampleAnswer: z.string().optional(),
+  markingCriteria: z.array(z.string()).optional(),
+});
+
+const nesaExamResponseSchema = z.object({
+  examTitle: z.string(),
+  totalMarks: z.number(),
+  timeAllowed: z.number(),
+  instructions: z.array(z.string()),
+  questions: z.array(nesaQuestionSchema),
+  markingGuide: z.object({
+    questionAnswers: z.array(z.object({
+      questionId: z.string(),
+      answer: z.string(),
+      criteria: z.array(z.string()),
+      sampleResponse: z.string().optional(),
+    })),
+  }).optional(),
+});
+
+app.post(
+  "/api/nesa/generate",
+  withErrorBoundary(async (req, res) => {
+    const payload = nesaExamSchema.parse(req.body);
+
+    const modulesText = payload.modules.join(", ");
+    const seedInstruction = payload.seed
+      ? `Use seed "${payload.seed}" to ensure deterministic generation. Vary the specific details, datasets, and wording while maintaining the same structure and difficulty.`
+      : "Generate unique questions while maintaining NESA standards.";
+
+    const systemPrompt = `You are the official NESA NSW Software Engineering HSC exam generator. You MUST generate exams that are IDENTICAL in format, tone, style, and rigor to official NESA sample exams.
+
+COURSE SPECIFICATIONS YOU MUST FOLLOW:
+- System and Data Modelling: Data flow diagrams, structure charts, data dictionaries, class diagrams, storyboards, decision trees
+- Programming Paradigms: Object-oriented, logic, imperative, functional
+- Algorithms: Pseudocode, flowcharts, sequence, selection, repetition, nested structures
+- Subroutines: Parameters, return values, scope
+- Relational Databases: SQL (SELECT, FROM, WHERE, GROUP BY, ORDER BY, SUM, AVG, COUNT, MIN, MAX), ORM principles
+- Programming for the Web: Front-end frameworks, cross-site scripting, CSS, HTML
+- Machine Learning: MLOps stages, regression algorithms, neural networks, training/execution cycles
+- Testing Methods: Functional, acceptance, live, simulated, beta, volume testing
+- Character Representation: ASCII, Unicode
+- Python Programming: Control structures, classes, functions, file handling, libraries
+- Security: SAST, DAST, authentication, authorization, encryption
+- Project Management: Gantt charts, process diaries, Agile, DevOps
+- System Implementation: Rollout types, deployment strategies
+
+EXAM STRUCTURE (MUST MATCH):
+1. Multiple Choice Questions (8 questions, 1-2 marks each): Test foundational knowledge
+2. Matching/Classification Questions (2 questions, 2-3 marks each): Match concepts, categorize items
+3. Short Answer Questions (6 questions, 2-3 marks each): Brief technical explanations
+4. Applied Code/Algorithm Questions (5 questions, 3-6 marks each): Python code, SQL queries, algorithm design, debugging
+5. Extended Response (1 question, 6-8 marks): Comprehensive analysis of DevOps, Automation, ML, or security topics
+
+CRITICAL REQUIREMENTS:
+- Use authentic NESA phrasing and academic tone
+- Questions must be technically accurate and aligned with HSC standards
+- Mark allocations must reflect question complexity
+- Include clear, unambiguous instructions
+- For code questions: Provide starter code or context
+- For diagram questions: Specify which diagram type (DFD, structure chart, class diagram, decision tree)
+- Extended response must require synthesis of multiple concepts
+- Questions progress from foundational to complex
+- Use realistic scenarios and datasets`;
+
+    const userPrompt = `Generate a complete NSW HSC Software Engineering practice exam covering: ${modulesText}
+
+Total questions: ${payload.questionCount}
+Include marking guide: ${payload.includeMarkingGuide}
+${seedInstruction}
+
+REQUIRED QUESTION DISTRIBUTION:
+- ~8 Multiple Choice (1-2 marks each)
+- 2 Matching/Classification (2-3 marks each)
+- 6 Short Answer (2-3 marks each)
+- 5 Code/Algorithm/Diagram (3-6 marks each)
+- 1 Extended Response (6-8 marks)
+
+Return JSON matching this exact structure:
+{
+  "examTitle": "NSW HSC Software Engineering Practice Examination",
+  "totalMarks": <sum of all marks>,
+  "timeAllowed": 180,
+  "instructions": [
+    "Attempt ALL questions",
+    "Write using black pen",
+    "For coding questions, you may test your code in the provided editor",
+    "Diagrams must be clearly labelled",
+    "Total marks: <marks>",
+    "Reading time: 5 minutes",
+    "Working time: 3 hours"
+  ],
+  "questions": [
+    {
+      "id": "q1",
+      "type": "mcq",
+      "questionNumber": 1,
+      "marks": 1,
+      "modules": ["<module name>"],
+      "prompt": "What is the primary purpose of requirements gathering in the software development lifecycle?",
+      "options": [
+        {"label": "A", "value": "To write code faster"},
+        {"label": "B", "value": "To identify and document stakeholder needs"},
+        {"label": "C", "value": "To test the final product"},
+        {"label": "D", "value": "To deploy the application"}
+      ]
+    },
+    {
+      "id": "q9",
+      "type": "matching",
+      "questionNumber": 9,
+      "marks": 3,
+      "modules": ["<module>"],
+      "prompt": "Match each testing method to its correct description.",
+      "matchingPairs": [
+        {"left": "SAST", "right": "Analyzes source code without execution"},
+        {"left": "DAST", "right": "Tests running applications"},
+        {"left": "Penetration Testing", "right": "Simulates real-world attacks"}
+      ]
+    },
+    {
+      "id": "q12",
+      "type": "short-answer",
+      "questionNumber": 12,
+      "marks": 3,
+      "modules": ["<module>"],
+      "prompt": "Explain the difference between authentication and authorization in web security."
+    },
+    {
+      "id": "q18",
+      "type": "code",
+      "questionNumber": 18,
+      "marks": 5,
+      "modules": ["Programming for the Web"],
+      "prompt": "Write a Python function that takes a list of integers and returns only the even numbers. Include error handling for invalid input.",
+      "codeLanguage": "python",
+      "codeStarter": "def filter_even_numbers(numbers):\\n    # Your code here\\n    pass",
+      "expectedOutput": "Example: filter_even_numbers([1, 2, 3, 4, 5, 6]) should return [2, 4, 6]"
+    },
+    {
+      "id": "q20",
+      "type": "code",
+      "questionNumber": 20,
+      "marks": 4,
+      "modules": ["Programming for the Web"],
+      "prompt": "Write an SQL query to find all students with grades above 75, ordered by grade descending. Use the 'students' table with columns: student_id, name, grade.",
+      "codeLanguage": "sql",
+      "codeStarter": "-- Write your SQL query here",
+      "expectedOutput": "Should return student_id, name, and grade for all students with grade > 75"
+    },
+    {
+      "id": "q22",
+      "type": "code",
+      "questionNumber": 22,
+      "marks": 6,
+      "modules": ["Software Engineering Project"],
+      "prompt": "Draw a structure chart for a library management system with the following modules: Main Controller, Book Management (Add Book, Remove Book, Search Book), Member Management (Register Member, Remove Member), and Loan Processing (Issue Loan, Return Book). Show the hierarchy and data flow.",
+      "codeLanguage": "diagram",
+      "expectedOutput": "Structure chart showing hierarchical decomposition with data/control flow"
+    },
+    {
+      "id": "q25",
+      "type": "extended",
+      "questionNumber": 25,
+      "marks": 8,
+      "modules": ["Automation", "Secure Software Architecture"],
+      "prompt": "Discuss how machine learning can be integrated into DevOps pipelines to improve software security. In your response, address:\\n(a) The role of ML in automated security testing (3 marks)\\n(b) Potential challenges and limitations (3 marks)\\n(c) Best practices for implementation (2 marks)\\n\\nProvide specific examples from MLOps and DevSecOps practices."
+    }
+  ],
+  ${payload.includeMarkingGuide ? `"markingGuide": {
+    "questionAnswers": [
+      {
+        "questionId": "q1",
+        "answer": "B",
+        "criteria": ["Correctly identifies stakeholder needs as primary purpose"],
+        "sampleResponse": "Option B is correct as requirements gathering focuses on identifying and documenting what stakeholders need from the system."
+      },
+      // ... answers for all questions
+    ]
+  }` : ""}
+}
+
+IMPORTANT:
+- Generate ${payload.questionCount} questions total
+- Distribute marks appropriately (total should be 80-100 marks)
+- Code questions MUST specify language (python, sql, or diagram)
+- Extended response must reference multiple syllabus topics
+- All questions must be technically accurate and HSC-appropriate
+- Use realistic, engaging scenarios
+- Maintain professional NESA tone throughout`;
+
+    const result = await runChatCompletion({
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt,
+        },
+        {
+          role: "user",
+          content: userPrompt,
+        },
+      ],
+      responseFormat: "json",
+      temperature: payload.seed ? 0.3 : 0.7, // Lower temperature for seeded generation
+    });
+
+    const parsed = nesaExamResponseSchema.parse(result);
+
+    await persistModuleOutput({
+      module: ModuleType.NESA_SOFTWARE_EXAM,
+      subject: "Software Engineering",
+      label: `NESA HSC Exam • ${modulesText}`,
+      input: payload as JsonValue,
+      output: parsed as JsonValue,
+      userId: req.currentUser?.id ?? null,
+    });
+
+    res.json(parsed);
+  })
+);
+
 app.use((_req, res) => {
   res.status(404).json({ error: "Route not found." });
 });

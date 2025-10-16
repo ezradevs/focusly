@@ -8,6 +8,7 @@ import {
   Languages,
   Layers3,
   NotebookPen,
+  Code2,
 } from "lucide-react";
 
 export type ModuleId =
@@ -17,7 +18,8 @@ export type ModuleId =
   | "flashcards"
   | "exam"
   | "planner"
-  | "language";
+  | "language"
+  | "nesa";
 
 export interface ModuleMeta {
   id: ModuleId;
@@ -77,6 +79,13 @@ export const MODULES: ModuleMeta[] = [
     icon: Languages,
     accent: "from-cyan-400 to-blue-600",
   },
+  {
+    id: "nesa",
+    label: "NESA Software Exam",
+    description: "Generate NSW HSC Software Engineering practice exams with interactive coding.",
+    icon: Code2,
+    accent: "from-indigo-400 to-purple-600",
+  },
 ];
 
 export const MODULE_TYPE_MAP: Record<StoredModuleType, ModuleId> = {
@@ -87,4 +96,5 @@ export const MODULE_TYPE_MAP: Record<StoredModuleType, ModuleId> = {
   EXAM_PACK: "exam",
   REVISION_PLAN: "planner",
   LANGUAGE_PRACTICE: "language",
+  NESA_SOFTWARE_EXAM: "nesa",
 };

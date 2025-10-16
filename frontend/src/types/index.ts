@@ -226,7 +226,8 @@ export type StoredModuleType =
   | "FLASHCARD_DECK"
   | "EXAM_PACK"
   | "REVISION_PLAN"
-  | "LANGUAGE_PRACTICE";
+  | "LANGUAGE_PRACTICE"
+  | "NESA_SOFTWARE_EXAM";
 
 export interface ModuleOutputRecord {
   id: string;
@@ -245,4 +246,67 @@ export interface ChatMessage {
   role: ChatRole;
   content: string;
   createdAt: number;
+}
+
+export type NESAModuleName =
+  | "Secure Software Architecture"
+  | "Programming for the Web"
+  | "Software Engineering Project"
+  | "Automation";
+
+export type NESAQuestionType = "mcq" | "matching" | "short-answer" | "code" | "extended";
+
+export type NESACodeLanguage = "python" | "sql" | "diagram";
+
+export interface NESAMatchingPair {
+  left: string;
+  right: string;
+}
+
+export interface NESAQuestionOption {
+  label: string;
+  value: string;
+}
+
+export interface NESAQuestion {
+  id: string;
+  type: NESAQuestionType;
+  questionNumber: number;
+  marks: number;
+  modules: string[];
+  prompt: string;
+  options?: NESAQuestionOption[];
+  matchingPairs?: NESAMatchingPair[];
+  codeLanguage?: NESACodeLanguage;
+  codeStarter?: string;
+  expectedOutput?: string;
+  sampleAnswer?: string;
+  markingCriteria?: string[];
+}
+
+export interface NESAMarkingAnswer {
+  questionId: string;
+  answer: string;
+  criteria: string[];
+  sampleResponse?: string;
+}
+
+export interface NESAMarkingGuide {
+  questionAnswers: NESAMarkingAnswer[];
+}
+
+export interface NESAExam {
+  examTitle: string;
+  totalMarks: number;
+  timeAllowed: number;
+  instructions: string[];
+  questions: NESAQuestion[];
+  markingGuide?: NESAMarkingGuide;
+}
+
+export interface NESAUserAnswer {
+  questionId: string;
+  answer: string;
+  code?: string;
+  diagram?: string;
 }
