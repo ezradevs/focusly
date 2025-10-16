@@ -20,6 +20,7 @@ enum ModuleType {
   FLASHCARD_DECK
   EXAM_PACK
   REVISION_PLAN
+  LANGUAGE_PRACTICE
 }
 
 model User {

@@ -225,7 +225,8 @@ export type StoredModuleType =
   | "QUIZ_SESSION"
   | "FLASHCARD_DECK"
   | "EXAM_PACK"
-  | "REVISION_PLAN";
+  | "REVISION_PLAN"
+  | "LANGUAGE_PRACTICE";
 
 export interface ModuleOutputRecord {
   id: string;

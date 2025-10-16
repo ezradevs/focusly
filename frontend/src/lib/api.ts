@@ -186,6 +186,40 @@ export const focuslyApi = {
       body: JSON.stringify(payload),
     }),
 
+  practiceLanguage: (payload: {
+    language: string;
+    practiceMode: "vocabulary" | "grammar" | "conversation" | "writing" | "translation";
+    content: string;
+    proficiencyLevel: "beginner" | "intermediate" | "advanced";
+    context?: string;
+  }) =>
+    request<{ result: Record<string, unknown> }>("/api/language/practice", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  languageConversation: (payload: {
+    language: string;
+    proficiencyLevel: "beginner" | "intermediate" | "advanced";
+    scenario?: string;
+    messages: Array<{
+      role: "user" | "assistant";
+      content: string;
+    }>;
+  }) =>
+    request<{
+      message: string;
+      translation: string;
+      feedback?: {
+        grammarNotes: string[];
+        vocabularySuggestions: string[];
+        culturalTips?: string[];
+      };
+    }>("/api/language/conversation", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
   updateProfile: (payload: { name: string }) =>
     request<AuthResponse>("/api/auth/profile", {
       method: "PATCH",

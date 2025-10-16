@@ -915,6 +915,282 @@ app.post(
   })
 );
 
+const languagePracticeSchema = z.object({
+  language: z.string().min(1),
+  practiceMode: z.enum(["vocabulary", "grammar", "conversation", "writing", "translation"]),
+  content: z.string().min(1),
+  proficiencyLevel: z.enum(["beginner", "intermediate", "advanced"]).default("intermediate"),
+  context: z.string().optional(),
+});
+
+const languagePracticeResponseSchema = z.object({
+  result: z.union([
+    z.object({
+      mode: z.literal("vocabulary"),
+      words: z.array(
+        z.object({
+          word: z.string(),
+          translation: z.string(),
+          pronunciation: z.string().optional(),
+          partOfSpeech: z.string(),
+          exampleSentence: z.string(),
+          usageTips: z.array(z.string()),
+        })
+      ),
+    }),
+    z.object({
+      mode: z.literal("grammar"),
+      corrections: z.array(
+        z.object({
+          original: z.string(),
+          corrected: z.string(),
+          explanation: z.string(),
+          rule: z.string(),
+        })
+      ),
+      summary: z.string(),
+    }),
+    z.object({
+      mode: z.literal("conversation"),
+      dialogue: z.array(
+        z.object({
+          speaker: z.string(),
+          text: z.string(),
+          translation: z.string().optional(),
+        })
+      ),
+      vocabulary: z.array(z.string()),
+      culturalNotes: z.array(z.string()).optional(),
+    }),
+    z.object({
+      mode: z.literal("writing"),
+      prompt: z.string(),
+      feedback: z
+        .object({
+          grammar: z.array(z.string()),
+          vocabulary: z.array(z.string()),
+          structure: z.array(z.string()),
+          overallScore: z.number(),
+        })
+        .optional(),
+      improvements: z.array(z.string()),
+    }),
+    z.object({
+      mode: z.literal("translation"),
+      originalText: z.string(),
+      translatedText: z.string(),
+      alternativeTranslations: z.array(z.string()).optional(),
+      explanations: z.array(
+        z.object({
+          phrase: z.string(),
+          explanation: z.string(),
+        })
+      ),
+    }),
+  ]),
+});
+
+const languageConversationSchema = z.object({
+  language: z.string().min(1),
+  proficiencyLevel: z.enum(["beginner", "intermediate", "advanced"]),
+  scenario: z.string().optional(),
+  messages: z.array(
+    z.object({
+      role: z.enum(["user", "assistant"]),
+      content: z.string(),
+    })
+  ),
+});
+
+const languageConversationResponseSchema = z.object({
+  message: z.string(),
+  translation: z.string(),
+  feedback: z.object({
+    grammarNotes: z.array(z.string()),
+    vocabularySuggestions: z.array(z.string()),
+    culturalTips: z.array(z.string()).optional(),
+  }).optional(),
+});
+
+app.post(
+  "/api/language/conversation",
+  withErrorBoundary(async (req, res) => {
+    const payload = languageConversationSchema.parse(req.body);
+
+    const systemPrompt = `You are a ${payload.language} language tutor for ${payload.proficiencyLevel} level students.
+${payload.scenario ? `Scenario: ${payload.scenario}` : "Engage in natural conversation."}
+
+IMPORTANT INSTRUCTIONS:
+1. Respond ONLY in ${payload.language} (not English)
+2. Match the student's proficiency level (${payload.proficiencyLevel})
+3. Be conversational, encouraging, and natural
+4. Keep responses concise (2-4 sentences max)
+5. If the student makes errors, gently incorporate corrections in your response
+
+Return JSON with:
+{
+  "message": "your response in ${payload.language}",
+  "translation": "English translation of your response",
+  "feedback": {
+    "grammarNotes": ["any grammar corrections or tips"],
+    "vocabularySuggestions": ["better word choices or expressions"],
+    "culturalTips": ["relevant cultural context"]
+  }
+}`;
+
+    const result = await runChatCompletion({
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt,
+        },
+        ...payload.messages,
+      ],
+      responseFormat: "json",
+      temperature: 0.7,
+    });
+
+    const parsed = languageConversationResponseSchema.parse(result);
+    res.json(parsed);
+  })
+);
+
+app.post(
+  "/api/language/practice",
+  withErrorBoundary(async (req, res) => {
+    const payload = languagePracticeSchema.parse(req.body);
+
+    const modePrompts = {
+      vocabulary: `Generate a vocabulary lesson for ${payload.language} at ${payload.proficiencyLevel} level.
+Topic/words: ${payload.content}
+
+Return JSON:
+{
+  "result": {
+    "mode": "vocabulary",
+    "words": [
+      {
+        "word": "word in target language",
+        "translation": "English translation",
+        "pronunciation": "phonetic or romanization",
+        "partOfSpeech": "noun/verb/adjective/etc",
+        "exampleSentence": "natural example sentence in target language",
+        "usageTips": ["tip about when/how to use", "common collocations"]
+      }
+    ]
+  }
+}`,
+      grammar: `Check and correct the following ${payload.language} text. Provide detailed grammar explanations.
+Proficiency level: ${payload.proficiencyLevel}
+Text: ${payload.content}
+
+Return JSON:
+{
+  "result": {
+    "mode": "grammar",
+    "corrections": [
+      {
+        "original": "incorrect phrase",
+        "corrected": "corrected phrase",
+        "explanation": "why it's wrong and how to fix it",
+        "rule": "the grammar rule that applies"
+      }
+    ],
+    "summary": "overall assessment of grammar proficiency"
+  }
+}`,
+      conversation: `Create a realistic conversation scenario in ${payload.language} at ${payload.proficiencyLevel} level.
+Scenario: ${payload.content}
+${payload.context ? `Additional context: ${payload.context}` : ""}
+
+Return JSON:
+{
+  "result": {
+    "mode": "conversation",
+    "dialogue": [
+      {
+        "speaker": "Person A",
+        "text": "dialogue in target language",
+        "translation": "English translation"
+      }
+    ],
+    "vocabulary": ["key word 1", "key word 2"],
+    "culturalNotes": ["cultural tip 1", "cultural tip 2"]
+  }
+}`,
+      writing: `${
+        payload.content.length > 50
+          ? `Provide detailed feedback on this ${payload.language} writing (${payload.proficiencyLevel} level):\n${payload.content}`
+          : `Generate a writing prompt for ${payload.language} practice at ${payload.proficiencyLevel} level.\nTopic: ${payload.content}`
+      }
+
+Return JSON:
+{
+  "result": {
+    "mode": "writing",
+    "prompt": "${payload.content.length > 50 ? payload.content : "generated prompt"}",
+    ${
+      payload.content.length > 50
+        ? `"feedback": {
+      "grammar": ["grammar point 1"],
+      "vocabulary": ["vocabulary suggestion 1"],
+      "structure": ["structure improvement 1"],
+      "overallScore": 85
+    },`
+        : ""
+    }
+    "improvements": ["suggestion 1", "suggestion 2"]
+  }
+}`,
+      translation: `Translate the following text to ${payload.language} at ${payload.proficiencyLevel} level, with explanations.
+Text: ${payload.content}
+
+Return JSON:
+{
+  "result": {
+    "mode": "translation",
+    "originalText": "${payload.content}",
+    "translatedText": "translation",
+    "alternativeTranslations": ["alternative 1", "alternative 2"],
+    "explanations": [
+      {
+        "phrase": "specific phrase from translation",
+        "explanation": "why translated this way, grammar notes, cultural context"
+      }
+    ]
+  }
+}`,
+    };
+
+    const result = await runChatCompletion({
+      messages: [
+        {
+          role: "system",
+          content: `You are Focusly's language learning assistant. You help students practice ${payload.language} through various interactive methods. Always provide accurate translations, clear explanations, and culturally appropriate content. Return valid JSON following the provided schema.`,
+        },
+        {
+          role: "user",
+          content: modePrompts[payload.practiceMode],
+        },
+      ],
+      responseFormat: "json",
+    });
+
+    const parsed = languagePracticeResponseSchema.parse(result);
+
+    await persistModuleOutput({
+      module: ModuleType.LANGUAGE_PRACTICE,
+      subject: payload.language,
+      label: `${payload.language} • ${payload.practiceMode}`,
+      input: payload as JsonValue,
+      output: parsed as JsonValue,
+      userId: req.currentUser?.id ?? null,
+    });
+
+    res.json(parsed);
+  })
+);
+
 app.use((_req, res) => {
   res.status(404).json({ error: "Route not found." });
 });

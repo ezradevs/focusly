@@ -10,6 +10,7 @@ import { QuizModeModule } from "@/components/modules/quiz-mode";
 import { FlashcardMakerModule } from "@/components/modules/flashcard-maker";
 import { ExamCreatorModule } from "@/components/modules/exam-creator";
 import { RevisionPlannerModule } from "@/components/modules/revision-planner";
+import { LanguagePracticeModule } from "@/components/modules/language-practice";
 
 export default function WorkspacePage() {
   const lastModule = usePreferencesStore((state) => state.lastModule);
@@ -36,6 +37,8 @@ export default function WorkspacePage() {
         return <ExamCreatorModule key="exam" />;
       case "planner":
         return <RevisionPlannerModule key="planner" />;
+      case "language":
+        return <LanguagePracticeModule key="language" />;
       default:
         return <NotesSummariserModule key="notes" />;
     }

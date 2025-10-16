@@ -5,6 +5,7 @@ import {
   ClipboardList,
   FileSpreadsheet,
   GraduationCap,
+  Languages,
   Layers3,
   NotebookPen,
 } from "lucide-react";
@@ -15,7 +16,8 @@ export type ModuleId =
   | "quiz"
   | "flashcards"
   | "exam"
-  | "planner";
+  | "planner"
+  | "language";
 
 export interface ModuleMeta {
   id: ModuleId;
@@ -68,6 +70,13 @@ export const MODULES: ModuleMeta[] = [
     icon: FileSpreadsheet,
     accent: "from-lime-400 to-green-600",
   },
+  {
+    id: "language",
+    label: "Language Practice",
+    description: "Practice vocabulary, grammar, conversation, and translation.",
+    icon: Languages,
+    accent: "from-cyan-400 to-blue-600",
+  },
 ];
 
 export const MODULE_TYPE_MAP: Record<StoredModuleType, ModuleId> = {
@@ -77,4 +86,5 @@ export const MODULE_TYPE_MAP: Record<StoredModuleType, ModuleId> = {
   FLASHCARD_DECK: "flashcards",
   EXAM_PACK: "exam",
   REVISION_PLAN: "planner",
+  LANGUAGE_PRACTICE: "language",
 };

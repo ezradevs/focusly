@@ -32,3 +32,6 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- AddForeignKey
 ALTER TABLE "ModuleOutput" ADD CONSTRAINT "ModuleOutput_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- Add LANGUAGE_PRACTICE to ModuleType enum
+ALTER TYPE "ModuleType" ADD VALUE 'LANGUAGE_PRACTICE';
