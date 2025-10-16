@@ -1,2 +1,4 @@
 // Vercel serverless function entry point
-module.exports = require('../dist/server.js').default;
+const app = require('../dist/server.js').default;
+
+module.exports = app;
