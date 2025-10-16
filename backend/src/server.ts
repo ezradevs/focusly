@@ -898,22 +898,26 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
   res.status(500).json({ error: "Internal server error." });
 });
 
+// Initialize database only in development
+async function initializeServer() {
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      await ensureDatabase();
+    } catch (error) {
+      console.error("[server.bootstrap]", error);
+    }
+  }
+}
+
+// Call initialization but don't await it to avoid blocking serverless startup
+void initializeServer();
+
 // For Vercel serverless deployment
 export default app;
 
 // Only start server in development
 if (process.env.NODE_ENV !== 'production') {
-  async function start() {
-    try {
-      await ensureDatabase();
-      app.listen(PORT, () => {
-        console.log(`Focusly API listening on port ${PORT}`);
-      });
-    } catch (error) {
-      console.error("[server.bootstrap]", error);
-      process.exit(1);
-    }
-  }
-
-  void start();
+  app.listen(PORT, () => {
+    console.log(`Focusly API listening on port ${PORT}`);
+  });
 }
