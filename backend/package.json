@@ -5,7 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only --require tsconfig-paths/register src/server.ts",
-    "build": "prisma generate && tsc",
+    "build": "prisma generate && tsc && node scripts/copy-server.js",
     "postinstall": "prisma generate",
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
