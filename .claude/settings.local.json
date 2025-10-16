@@ -7,7 +7,9 @@
       "Bash(cat:*)",
       "Bash(git init:*)",
       "Bash(node -e:*)",
-      "Bash(npx prisma generate:*)"
+      "Bash(npx prisma generate:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
