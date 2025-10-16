@@ -242,6 +242,7 @@ export function NESAExamModule() {
               <div className="text-lg font-medium mb-4">{question.prompt}</div>
               <SQLEditor
                 initialQuery={question.codeStarter || ""}
+                sampleData={question.sqlSampleData}
                 expectedOutput={question.expectedOutput}
                 onQueryChange={(query) => handleAnswerChange(question.id, query)}
               />

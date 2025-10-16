@@ -282,6 +282,11 @@ export interface NESAQuestion {
   expectedOutput?: string;
   sampleAnswer?: string;
   markingCriteria?: string[];
+  sqlSampleData?: {
+    tableName: string;
+    columns: string[];
+    rows: string[][];
+  }[];
 }
 
 export interface NESAMarkingAnswer {

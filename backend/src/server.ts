@@ -1227,6 +1227,11 @@ const nesaQuestionSchema = z.object({
   expectedOutput: z.string().optional(),
   sampleAnswer: z.string().optional(),
   markingCriteria: z.array(z.string()).optional(),
+  sqlSampleData: z.array(z.object({
+    tableName: z.string(),
+    columns: z.array(z.string()),
+    rows: z.array(z.array(z.string())),
+  })).optional(),
 });
 
 const nesaExamResponseSchema = z.object({
@@ -1370,10 +1375,23 @@ Return JSON matching this exact structure:
       "questionNumber": 20,
       "marks": 4,
       "modules": ["Programming for the Web"],
-      "prompt": "Write an SQL query to find all students with grades above 75, ordered by grade descending. Use the 'students' table with columns: student_id, name, grade.",
+      "prompt": "Write an SQL query to find all students with grades above 75, ordered by grade descending.",
       "codeLanguage": "sql",
       "codeStarter": "-- Write your SQL query here",
-      "expectedOutput": "Should return student_id, name, and grade for all students with grade > 75"
+      "expectedOutput": "Should return student_id, name, and grade for all students with grade > 75",
+      "sqlSampleData": [
+        {
+          "tableName": "students",
+          "columns": ["student_id", "name", "grade"],
+          "rows": [
+            ["1", "Alice Johnson", "85"],
+            ["2", "Bob Smith", "92"],
+            ["3", "Carol Davis", "68"],
+            ["4", "David Wilson", "95"],
+            ["5", "Eve Martinez", "72"]
+          ]
+        }
+      ]
     },
     {
       "id": "q22",
@@ -1411,6 +1429,7 @@ IMPORTANT:
 - Generate ${payload.questionCount} questions total
 - Distribute marks appropriately (total should be 80-100 marks)
 - Code questions MUST specify language (python, sql, or diagram)
+- For SQL questions: MUST include "sqlSampleData" with table name, columns, and 5-10 sample rows
 - Extended response must reference multiple syllabus topics
 - All questions must be technically accurate and HSC-appropriate
 - Use realistic, engaging scenarios
