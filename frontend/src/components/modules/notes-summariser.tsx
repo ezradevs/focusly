@@ -91,32 +91,45 @@ export function NotesSummariserModule() {
         let text = "";
 
         if (file.type === "application/pdf") {
-          // Dynamically import PDF.js to avoid SSR issues
-          const pdfjsLib = await import("pdfjs-dist");
+          toast.info("Extracting text from PDF...");
 
-          // Configure worker
-          pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+          try {
+            // Dynamically import PDF.js to avoid SSR issues
+            const pdfjsLib = await import("pdfjs-dist");
 
-          // Extract text from PDF
-          const arrayBuffer = await file.arrayBuffer();
-          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-          const textParts: string[] = [];
+            // Configure worker to use local file
+            pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf-worker/pdf.worker.min.mjs";
 
-          for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const content = await page.getTextContent();
-            const pageText = content.items
-              .map((item) => {
-                if ("str" in item) {
-                  return item.str;
-                }
-                return "";
-              })
-              .join(" ");
-            textParts.push(pageText);
+            // Extract text from PDF
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const textParts: string[] = [];
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+              const page = await pdf.getPage(i);
+              const content = await page.getTextContent();
+              const pageText = content.items
+                .map((item) => {
+                  if ("str" in item) {
+                    return item.str;
+                  }
+                  return "";
+                })
+                .join(" ");
+              textParts.push(pageText);
+            }
+
+            text = textParts.join("\n\n");
+
+            if (!text.trim()) {
+              toast.warning("PDF appears to be empty or contains only images");
+              return;
+            }
+          } catch (pdfError) {
+            console.error("PDF parsing error:", pdfError);
+            toast.error(`PDF error: ${pdfError instanceof Error ? pdfError.message : "Unknown error"}`);
+            return;
           }
-
-          text = textParts.join("\n\n");
         } else {
           // Handle text files
           text = await file.text();
