@@ -241,40 +241,58 @@ export function PomodoroTimer() {
           </div>
 
           {/* Timer display */}
-          <div className="relative">
+          <div className="relative flex items-center justify-center">
             {/* Progress ring */}
-            <div className="relative mx-auto h-48 w-48">
+            <div className="relative h-64 w-64">
               <svg className="h-full w-full -rotate-90 transform">
+                {/* Background circle */}
                 <circle
-                  cx="96"
-                  cy="96"
-                  r="88"
+                  cx="128"
+                  cy="128"
+                  r="116"
                   stroke="currentColor"
                   strokeWidth="8"
                   fill="none"
-                  className="text-muted"
+                  className="text-muted/20"
                 />
+                {/* Progress circle */}
                 <motion.circle
-                  cx="96"
-                  cy="96"
-                  r="88"
-                  stroke="url(#gradient)"
+                  cx="128"
+                  cy="128"
+                  r="116"
+                  stroke="url(#timerGradient)"
                   strokeWidth="8"
                   fill="none"
                   strokeLinecap="round"
                   initial={false}
                   animate={{
-                    strokeDashoffset: 553.28 - (553.28 * progress) / 100,
+                    strokeDashoffset: 728.5 - (728.5 * progress) / 100,
                   }}
-                  transition={{ duration: 0.5 }}
+                  transition={{ duration: 0.5, ease: "easeInOut" }}
                   style={{
-                    strokeDasharray: 553.28,
+                    strokeDasharray: 728.5,
                   }}
                 />
                 <defs>
-                  <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" className={cn("stop-rose-500", phase === "work" && "stop-rose-500", phase === "shortBreak" && "stop-blue-500", phase === "longBreak" && "stop-purple-500")} />
-                    <stop offset="100%" className={cn("stop-orange-500", phase === "work" && "stop-orange-500", phase === "shortBreak" && "stop-cyan-500", phase === "longBreak" && "stop-pink-500")} />
+                  <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    {phase === "work" && (
+                      <>
+                        <stop offset="0%" stopColor="rgb(244, 63, 94)" />
+                        <stop offset="100%" stopColor="rgb(249, 115, 22)" />
+                      </>
+                    )}
+                    {phase === "shortBreak" && (
+                      <>
+                        <stop offset="0%" stopColor="rgb(59, 130, 246)" />
+                        <stop offset="100%" stopColor="rgb(6, 182, 212)" />
+                      </>
+                    )}
+                    {phase === "longBreak" && (
+                      <>
+                        <stop offset="0%" stopColor="rgb(168, 85, 247)" />
+                        <stop offset="100%" stopColor="rgb(236, 72, 153)" />
+                      </>
+                    )}
                   </linearGradient>
                 </defs>
               </svg>
@@ -282,7 +300,7 @@ export function PomodoroTimer() {
                 <Badge variant="outline" className="mb-2">
                   {phaseLabels[phase]}
                 </Badge>
-                <div className="text-5xl font-bold tabular-nums">
+                <div className="text-6xl font-bold tabular-nums tracking-tight">
                   {String(minutes).padStart(2, "0")}:
                   {String(seconds).padStart(2, "0")}
                 </div>
