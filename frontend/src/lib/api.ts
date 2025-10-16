@@ -1,0 +1,205 @@
+import type {
+  AuthUser,
+  ExamResponse,
+  FlashcardBuilderResponse,
+  GeneratedQuestion,
+  ModuleOutputRecord,
+  PlannerResult,
+  QuizFeedbackResponse,
+  StoredModuleType,
+  SummaryResult,
+  ChatRole,
+} from "@/types";
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
+
+interface RequestOptions extends RequestInit {
+  signal?: AbortSignal;
+}
+
+interface QuestionsResponse {
+  questions: GeneratedQuestion[];
+}
+
+interface OutputsResponse {
+  outputs: ModuleOutputRecord[];
+}
+
+interface OutputResponse {
+  output: ModuleOutputRecord;
+}
+
+interface AuthResponse {
+  user: AuthUser;
+}
+
+interface TutorChatPayload {
+  subject?: string;
+  messages: Array<{
+    role: ChatRole;
+    content: string;
+  }>;
+}
+
+interface TutorChatResponse {
+  reply: string;
+}
+
+async function request<T>(
+  path: string,
+  options: RequestOptions = {}
+): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+    credentials: "include",
+    ...options,
+  });
+
+  if (!response.ok) {
+    const message = await response
+      .json()
+      .catch(() => ({ error: response.statusText }));
+
+    throw new Error(message.error ?? "Unexpected server error");
+  }
+
+  return response.json() as Promise<T>;
+}
+
+export const focuslyApi = {
+  summariseNotes: (payload: {
+    subject: string;
+    tone: "concise" | "exam-focus";
+    text: string;
+  }) => request<SummaryResult>("/api/notes/summarize", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }),
+
+  generateQuestions: (payload: {
+    subject: string;
+    promptSource: "topic" | "notes";
+    content: string;
+    questionCount: number;
+    questionTypes: Array<"mcq" | "short-answer" | "extended">;
+    includeMarkingGuides: boolean;
+  }) =>
+    request<QuestionsResponse>("/api/questions/generate", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  getQuizFeedback: (payload: {
+    questionId: string;
+    questionType: "mcq" | "short-answer" | "extended";
+    questionPrompt: string;
+    userAnswer: string;
+    correctAnswer?: string;
+    context?: string;
+  }) =>
+    request<QuizFeedbackResponse>("/api/quiz/feedback", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  buildFlashcards: (payload: {
+    subject: string;
+    sourceText: string;
+    includeTypes: Array<"basic" | "cloze" | "image-occlusion">;
+  }) =>
+    request<FlashcardBuilderResponse>("/api/flashcards/build", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  createExamPrompts: (payload: {
+    subject: string;
+    topics: string[];
+    quantity: number;
+    includeBandSixSample: boolean;
+    userResponse?: string;
+  }) =>
+    request<ExamResponse>("/api/exams/create", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  buildRevisionPlan: (payload: {
+    subjects: string[];
+    topics: string[];
+    examDate: string;
+    focusAreas?: string[];
+    studyDaysPerWeek: number;
+  }) =>
+    request<PlannerResult>("/api/planner/build", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  signup: (payload: { email: string; password: string; name?: string }) =>
+    request<AuthResponse>("/api/auth/signup", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  login: (payload: { email: string; password: string }) =>
+    request<AuthResponse>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  logout: () =>
+    request<{ success: boolean }>("/api/auth/logout", {
+      method: "POST",
+    }),
+
+  currentUser: () => request<AuthResponse>("/api/auth/me"),
+
+  listOutputs: (params: { module?: StoredModuleType; limit?: number } = {}) => {
+    const query = new URLSearchParams();
+    if (params.module) query.set("module", params.module);
+    if (params.limit) query.set("limit", String(params.limit));
+    const suffix = query.toString() ? `?${query.toString()}` : "";
+    return request<OutputsResponse>(`/api/outputs${suffix}`);
+  },
+
+  getOutput: (id: string) => request<OutputResponse>(`/api/outputs/${id}`),
+
+  updateOutputLabel: (id: string, label: string) =>
+    request<OutputResponse>(`/api/outputs/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ label }),
+    }),
+
+  deleteOutput: (id: string) =>
+    request<{ success: boolean }>(`/api/outputs/${id}`, {
+      method: "DELETE",
+    }),
+
+  tutorChat: (payload: TutorChatPayload) =>
+    request<TutorChatResponse>("/api/tutor/chat", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  updateProfile: (payload: { name: string }) =>
+    request<AuthResponse>("/api/auth/profile", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
+  updatePassword: (payload: { currentPassword: string; newPassword: string }) =>
+    request<{ success: boolean }>("/api/auth/password", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
+  deleteAccount: () =>
+    request<{ success: boolean }>("/api/auth/account", {
+      method: "DELETE",
+    }),
+};

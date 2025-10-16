@@ -1,0 +1,247 @@
+export type SubjectValue =
+  | "biology"
+  | "chemistry"
+  | "physics"
+  | "mathematics"
+  | "software-engineering"
+  | "english"
+  | "economics"
+  | "business-studies"
+  | "history"
+  | "custom";
+
+export interface SubjectOption {
+  label: string;
+  value: SubjectValue;
+}
+
+export interface SummaryDefinition {
+  term: string;
+  definition: string;
+}
+
+export interface SummaryFollowUp {
+  title: string;
+  description: string;
+}
+
+export interface SummaryResult {
+  summary: string;
+  keyPoints: string[];
+  definitions: SummaryDefinition[];
+  followUpSuggestions?: SummaryFollowUp[];
+}
+
+export type QuestionType = "mcq" | "short-answer" | "extended";
+
+export interface QuestionOption {
+  label: string;
+  value: string;
+}
+
+export interface GeneratedQuestion {
+  id: string;
+  type: QuestionType;
+  prompt: string;
+  options?: QuestionOption[];
+  answer: string;
+  explanation: string;
+  markingGuide?: string;
+}
+
+export interface QuizAttempt {
+  questionId: string;
+  userAnswer: string;
+  isCorrect: boolean;
+  feedback: string;
+  improvementTips: string[];
+  timestamp: number;
+}
+
+export interface QuizSession {
+  id: string;
+  questions: GeneratedQuestion[];
+  attempts: QuizAttempt[];
+  score?: number;
+  analytics?: {
+    accuracy: number;
+    attempted: number;
+    correct: number;
+    averageTimeSeconds?: number;
+  };
+  completedAt?: number | null;
+  createdAt: number;
+}
+
+export type FlashcardType = "basic" | "cloze" | "image-occlusion";
+
+export interface ImageMask {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface Flashcard {
+  id: string;
+  deckId: string;
+  subject: string;
+  type: FlashcardType;
+  front: string;
+  back?: string;
+  clozeDeletion?: {
+    fullText: string;
+    missingText: string;
+  };
+  imageGuidance?: {
+    prompt: string;
+    occlusionIdeas: Array<{
+      label: string;
+      description: string;
+    }>;
+    imageSrc?: string;
+    masks?: ImageMask[];
+  };
+  tags?: string[];
+  createdAt: number;
+}
+
+export interface FlashcardDeck {
+  id: string;
+  name: string;
+  subject: string;
+  description?: string;
+  cards: Flashcard[];
+  updatedAt: number;
+}
+
+export interface FlashcardBuilderResponse {
+  cards: Array<
+    Pick<
+      Flashcard,
+      | "id"
+      | "type"
+      | "front"
+      | "back"
+      | "clozeDeletion"
+      | "imageGuidance"
+      | "tags"
+    >
+  >;
+  studyTips?: string[];
+}
+
+export interface ExamEvaluation {
+  summary: string;
+  strengths: string[];
+  improvements: string[];
+  indicativeBand?: string;
+}
+
+export interface ExamQuestion {
+  id?: string;
+  prompt: string;
+  criteria: string[];
+  bandSixSample?: string;
+  evaluation?: ExamEvaluation;
+  timeAllocationMinutes?: number;
+}
+
+export interface ExamResponse {
+  questions: ExamQuestion[];
+  reflectionPrompts?: string[];
+}
+
+export interface ExamAnswer {
+  questionId: string;
+  answer: string;
+  timeSpentSeconds: number;
+}
+
+export interface ExamSession {
+  id: string;
+  examName: string;
+  subject: string;
+  questions: ExamQuestion[];
+  answers: ExamAnswer[];
+  startedAt: number;
+  completedAt?: number | null;
+  totalTimeSeconds?: number;
+  isPaused?: boolean;
+  pausedAt?: number;
+}
+
+export interface PlannerActivity {
+  subject: string;
+  topic: string;
+  activity: string;
+  estimatedMinutes: number;
+}
+
+export interface PlannerDay {
+  date: string;
+  focus: PlannerActivity[];
+}
+
+export interface PlannerWeek {
+  weekLabel: string;
+  startDate: string;
+  endDate: string;
+  days: PlannerDay[];
+}
+
+export interface PlannerResult {
+  overview: string;
+  plan: PlannerWeek[];
+  successTips?: string[];
+}
+
+export interface QuizFeedbackResponse {
+  isCorrect: boolean;
+  feedback: string;
+  improvementTips: string[];
+}
+
+export interface ApiSuccess<T> {
+  data: T;
+}
+
+export interface ApiError {
+  error: string;
+  details?: unknown;
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string | null;
+  createdAt: string;
+}
+
+export type StoredModuleType =
+  | "NOTES_SUMMARY"
+  | "QUESTION_SET"
+  | "QUIZ_SESSION"
+  | "FLASHCARD_DECK"
+  | "EXAM_PACK"
+  | "REVISION_PLAN";
+
+export interface ModuleOutputRecord {
+  id: string;
+  module: StoredModuleType;
+  subject?: string | null;
+  label?: string | null;
+  input: unknown;
+  output: unknown;
+  createdAt: string;
+}
+
+export type ChatRole = "user" | "assistant";
+
+export interface ChatMessage {
+  id: string;
+  role: ChatRole;
+  content: string;
+  createdAt: number;
+}
