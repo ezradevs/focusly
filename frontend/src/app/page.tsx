@@ -69,7 +69,7 @@ export default function DashboardPage() {
                 )}
               </h1>
               <p className="text-muted-foreground">
-                Ready to make today count? Let's study smarter.
+                Ready to make today count? Let&apos;s study smarter.
               </p>
             </div>
           </div>
@@ -237,8 +237,8 @@ function StatCard({
 
 function RecentActivityItem({ output }: { output: ModuleOutputRecord }) {
   const moduleId = MODULE_TYPE_MAP[output.module];
-  const module = MODULES.find((m) => m.id === moduleId);
-  const Icon = module?.icon || BookOpen;
+  const moduleConfig = MODULES.find((m) => m.id === moduleId);
+  const Icon = moduleConfig?.icon || BookOpen;
   const formattedDate = new Date(output.createdAt).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -250,7 +250,7 @@ function RecentActivityItem({ output }: { output: ModuleOutputRecord }) {
     <div className="flex items-center gap-4 rounded-lg border bg-card p-4 transition-colors hover:bg-muted/50">
       <div
         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${
-          module?.accent || "from-gray-400 to-gray-600"
+          moduleConfig?.accent || "from-gray-400 to-gray-600"
         } text-white shadow-sm`}
       >
         <Icon className="h-5 w-5" />
@@ -258,7 +258,7 @@ function RecentActivityItem({ output }: { output: ModuleOutputRecord }) {
       <div className="flex-1 space-y-1">
         <div className="flex items-center gap-2">
           <p className="font-medium leading-none">
-            {output.label || module?.label || "Untitled"}
+            {output.label || moduleConfig?.label || "Untitled"}
           </p>
           {output.subject && (
             <Badge variant="secondary" className="text-xs">
@@ -283,7 +283,7 @@ function calculateStats(outputs: ModuleOutputRecord[]) {
   let correctAnswers = 0;
 
   quizOutputs.forEach((output) => {
-    const data = output.output as any;
+    const data = output.output as Record<string, unknown>;
     if (data?.isCorrect !== undefined) {
       totalQuestions++;
       if (data.isCorrect) correctAnswers++;

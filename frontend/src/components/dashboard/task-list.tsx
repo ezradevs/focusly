@@ -50,7 +50,7 @@ export function TaskList() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ListTodo className="h-5 w-5 text-primary" />
-            <CardTitle className="text-lg">Today's Tasks</CardTitle>
+            <CardTitle className="text-lg">Today&apos;s Tasks</CardTitle>
           </div>
           {completedTasks.length > 0 && (
             <Button

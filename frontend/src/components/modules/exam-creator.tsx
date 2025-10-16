@@ -23,6 +23,7 @@ import {
 import { useExamStore } from "@/store/exam";
 import { SubjectSelect } from "@/components/subject-select";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
