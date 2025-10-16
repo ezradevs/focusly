@@ -16,7 +16,34 @@ const app = express();
 
 app.use(
   cors({
-    origin: CLIENT_ORIGIN ?? ["http://localhost:3000", "http://localhost:5173"],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or Postman)
+      if (!origin) return callback(null, true);
+
+      // Remove trailing slash if present
+      const cleanOrigin = origin.replace(/\/$/, '');
+
+      // Allow localhost for development
+      if (cleanOrigin.startsWith('http://localhost')) {
+        return callback(null, true);
+      }
+
+      // Allow all *.vercel.app domains (production + preview deployments)
+      if (cleanOrigin.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
+
+      // Allow specific CLIENT_ORIGIN if set
+      if (CLIENT_ORIGIN) {
+        const cleanClientOrigin = CLIENT_ORIGIN.replace(/\/$/, '');
+        if (cleanOrigin === cleanClientOrigin) {
+          return callback(null, true);
+        }
+      }
+
+      // Reject all other origins
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
   })
 );
