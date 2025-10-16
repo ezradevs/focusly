@@ -35,3 +35,6 @@ ALTER TABLE "ModuleOutput" ADD CONSTRAINT "ModuleOutput_userId_fkey" FOREIGN KEY
 
 -- Add LANGUAGE_PRACTICE to ModuleType enum
 ALTER TYPE "ModuleType" ADD VALUE 'LANGUAGE_PRACTICE';
+
+-- Migration to add NESA_SOFTWARE_EXAM module type
+ALTER TYPE "ModuleType" ADD VALUE 'NESA_SOFTWARE_EXAM';
