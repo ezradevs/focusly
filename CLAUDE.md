@@ -61,13 +61,6 @@ npm run dev          # Start dev server (localhost:4000)
 npx prisma generate  # Regenerate Prisma client after schema changes
 ```
 
-### Git
-```bash
-git add .
-git commit -m "feat: your message"
-git push
-```
-
 ## Development Workflow
 
 ### Adding a New Module
@@ -104,25 +97,8 @@ git push
 7. **Commit** (see below)
 
 ### Git Commit Preferences
-**ALWAYS create a git commit after completing a feature or significant change.**
+**ALWAYS create a git commit MESSAGE (not command) for Ezra after completing a feature or significant change.**
 
-Use conventional commit format:
-```bash
-git commit -m "feat: add new feature
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>"
-```
-
-Commit types:
-- `feat:` - New feature
-- `fix:` - Bug fix
-- `refactor:` - Code refactoring
-- `docs:` - Documentation
-- `style:` - Formatting, missing semicolons, etc.
-- `test:` - Adding tests
-- `chore:` - Maintenance
 
 ## Database (Supabase PostgreSQL)
 
@@ -254,11 +230,6 @@ NEXT_PUBLIC_API_BASE_URL=https://focusly-backend-kappa.vercel.app
 - Loading states with spinners
 - Error handling with try/catch and error messages
 
-### API
-- Zod for request/response validation
-- Consistent error responses: `{ error: string }`
-- Success responses: Direct data objects
-- Use `withErrorBoundary` middleware wrapper
 
 ## Testing
 - Build both frontend and backend to check for TypeScript errors
