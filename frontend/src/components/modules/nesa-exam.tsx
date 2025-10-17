@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { RequireAuth } from "@/components/auth/require-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -270,7 +271,8 @@ export function NESAExamModule() {
 
   if (!exam) {
     return (
-      <div className="space-y-6">
+      <RequireAuth>
+        <div className="space-y-6">
         {savedExams.length > 0 && (
           <Card>
             <CardHeader>
@@ -408,11 +410,13 @@ export function NESAExamModule() {
           </CardContent>
         </Card>
       </div>
+      </RequireAuth>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <RequireAuth>
+      <div className="space-y-6">
       <Card>
         <CardHeader>
           <div className="flex items-start justify-between">
@@ -513,5 +517,6 @@ export function NESAExamModule() {
         </CardContent>
       </Card>
     </div>
+    </RequireAuth>
   );
 }

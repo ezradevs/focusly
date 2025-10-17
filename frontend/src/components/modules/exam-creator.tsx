@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useExamStore } from "@/store/exam";
 import { SubjectSelect } from "@/components/subject-select";
+import { RequireAuth } from "@/components/auth/require-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -166,33 +167,36 @@ export function ExamCreatorModule() {
 
   if (takingSession) {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="h-[calc(100vh-200px)]"
-      >
-        <ExamTakingViewer
-          session={takingSession}
-          onSaveAnswer={(answer) => examStore.saveAnswer(takingSession.id, answer)}
-          onComplete={() => {
-            examStore.completeSession(takingSession.id);
-            setTakingExamId(null);
-          }}
-          onPause={() => examStore.pauseSession(takingSession.id)}
-          onResume={() => examStore.resumeSession(takingSession.id)}
-          onClose={() => setTakingExamId(null)}
-        />
-      </motion.div>
+      <RequireAuth>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="h-[calc(100vh-200px)]"
+        >
+          <ExamTakingViewer
+            session={takingSession}
+            onSaveAnswer={(answer) => examStore.saveAnswer(takingSession.id, answer)}
+            onComplete={() => {
+              examStore.completeSession(takingSession.id);
+              setTakingExamId(null);
+            }}
+            onPause={() => examStore.pauseSession(takingSession.id)}
+            onResume={() => examStore.resumeSession(takingSession.id)}
+            onClose={() => setTakingExamId(null)}
+          />
+        </motion.div>
+      </RequireAuth>
     );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      className="space-y-6"
-    >
+    <RequireAuth>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="space-y-6"
+      >
       <Card>
         <CardHeader>
           <CardTitle className="text-xl font-semibold">Exam-Style Creator</CardTitle>
@@ -552,6 +556,7 @@ export function ExamCreatorModule() {
         </Card>
       )}
     </motion.div>
+    </RequireAuth>
   );
 }
 

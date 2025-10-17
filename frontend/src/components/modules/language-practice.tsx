@@ -22,6 +22,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { focuslyApi } from "@/lib/api";
+import { RequireAuth } from "@/components/auth/require-auth";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -264,12 +265,13 @@ export function LanguagePracticeModule() {
   }, [userMessage, form, conversationScenario, conversationMessages]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      className="space-y-6"
-    >
+    <RequireAuth>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="space-y-6"
+      >
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -892,5 +894,6 @@ export function LanguagePracticeModule() {
         </Card>
       )}
     </motion.div>
+    </RequireAuth>
   );
 }

@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { CalendarIcon, Download, Loader2, Map } from "lucide-react";
+import { RequireAuth } from "@/components/auth/require-auth";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -104,12 +105,13 @@ export function RevisionPlannerModule() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      className="grid gap-6 lg:grid-cols-[1fr_1.2fr]"
-    >
+    <RequireAuth>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="grid gap-6 lg:grid-cols-[1fr_1.2fr]"
+      >
       <Card>
         <CardHeader>
           <CardTitle className="text-xl font-semibold">Revision Planner</CardTitle>
@@ -323,5 +325,6 @@ export function RevisionPlannerModule() {
         </CardContent>
       </Card>
     </motion.div>
+    </RequireAuth>
   );
 }

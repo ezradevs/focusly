@@ -22,6 +22,7 @@ import { SUBJECT_VALUES } from "@/constants/subjects";
 import type { SubjectValue, SummaryResult } from "@/types";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { NotesSummarySkeleton } from "@/components/loading/notes-summary-skeleton";
+import { RequireAuth } from "@/components/auth/require-auth";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -203,12 +204,13 @@ export function NotesSummariserModule() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      className="space-y-6"
-    >
+    <RequireAuth>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="space-y-6"
+      >
       <Card>
         <CardHeader className="space-y-1">
           <CardTitle className="text-xl font-semibold">
@@ -472,6 +474,7 @@ export function NotesSummariserModule() {
         </CardContent>
       </Card>
     </motion.div>
+    </RequireAuth>
   );
 }
 

@@ -18,6 +18,7 @@ import {
   Sparkles,
   Target,
 } from "lucide-react";
+import { RequireAuth } from "@/components/auth/require-auth";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -303,12 +304,13 @@ export function QuizModeModule() {
   }, [activeSession, currentQuestion, currentIndex, attemptsMap, submitCurrent]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      className="grid gap-6 lg:grid-cols-[2fr_1fr]"
-    >
+    <RequireAuth>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="grid gap-6 lg:grid-cols-[2fr_1fr]"
+      >
       <div className="space-y-6">
         <Card>
           <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -764,6 +766,7 @@ export function QuizModeModule() {
         </DialogContent>
       </Dialog>
     </motion.div>
+    </RequireAuth>
   );
 }
 
