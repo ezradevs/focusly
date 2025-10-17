@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { focuslyApi } from "@/lib/api";
-import type { ModuleOutputRecord, StoredModuleType } from "@/types";
+import type { MemorisationResult, ModuleOutputRecord, StoredModuleType } from "@/types";
 import { MODULES, MODULE_TYPE_MAP } from "@/constants/modules";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
+import { MemorisationViewer } from "@/components/workspace-viewers";
 
 export default function LibraryPage() {
   const [outputs, setOutputs] = useState<ModuleOutputRecord[]>([]);
@@ -95,6 +96,28 @@ export default function LibraryPage() {
     }
   };
 
+  const renderOutputContent = (output: ModuleOutputRecord) => {
+    if (output.module === "MEMORISATION") {
+      return (
+        <Card className="border-muted-foreground/20">
+          <CardContent className="pt-6">
+            <MemorisationViewer data={output.output as MemorisationResult} />
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <pre className="whitespace-pre-wrap text-sm">
+            {JSON.stringify(output.output, null, 2)}
+          </pre>
+        </CardContent>
+      </Card>
+    );
+  };
+
   const moduleTypes: Array<StoredModuleType | "all"> = [
     "all",
     "NOTES_SUMMARY",
@@ -104,6 +127,7 @@ export default function LibraryPage() {
     "EXAM_PACK",
     "REVISION_PLAN",
     "LANGUAGE_PRACTICE",
+    "MEMORISATION",
   ];
 
   return (
@@ -330,13 +354,7 @@ export default function LibraryPage() {
 
                 <div>
                   <h4 className="text-sm font-semibold mb-2">Output</h4>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <pre className="whitespace-pre-wrap text-sm">
-                        {JSON.stringify(viewingOutput.output, null, 2)}
-                      </pre>
-                    </CardContent>
-                  </Card>
+                  {renderOutputContent(viewingOutput)}
                 </div>
 
                 <div className="flex justify-end gap-2">

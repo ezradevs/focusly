@@ -9,6 +9,7 @@ import {
   Layers3,
   NotebookPen,
   Code2,
+  BrainCircuit,
 } from "lucide-react";
 
 export type ModuleId =
@@ -19,7 +20,8 @@ export type ModuleId =
   | "exam"
   | "planner"
   | "language"
-  | "nesa";
+  | "nesa"
+  | "memorisation";
 
 export interface ModuleMeta {
   id: ModuleId;
@@ -86,6 +88,13 @@ export const MODULES: ModuleMeta[] = [
     icon: Code2,
     accent: "from-indigo-400 to-purple-600",
   },
+  {
+    id: "memorisation",
+    label: "Memorisation Studio",
+    description: "Craft mnemonics, rehearse essays, and drill active recall.",
+    icon: BrainCircuit,
+    accent: "from-fuchsia-400 to-rose-600",
+  },
 ];
 
 export const MODULE_TYPE_MAP: Record<StoredModuleType, ModuleId> = {
@@ -97,4 +106,5 @@ export const MODULE_TYPE_MAP: Record<StoredModuleType, ModuleId> = {
   REVISION_PLAN: "planner",
   LANGUAGE_PRACTICE: "language",
   NESA_SOFTWARE_EXAM: "nesa",
+  MEMORISATION: "memorisation",
 };
