@@ -224,7 +224,7 @@ export function MemorisationModule() {
         transition={{ duration: 0.25 }}
         className="space-y-6"
       >
-        <Card className="border-primary/10 bg-gradient-to-br from-fuchsia-400/20 via-rose-200/20 to-rose-500/20">
+        <Card className="border-primary/10 bg-gradient-to-br from-fuchsia-500/20 via-purple-200/25 to-indigo-500/20">
           <CardHeader className="space-y-3">
             <div className="flex items-center gap-2">
               <Brain className="h-6 w-6 text-primary" />
@@ -265,7 +265,7 @@ export function MemorisationModule() {
                   Give us the facts you&apos;re trying to remember and choose the style that works for your brain.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 <Form {...mnemonicForm}>
                   <form className="space-y-6" onSubmit={onSubmitMnemonics}>
                     <div className="grid gap-4 md:grid-cols-2">
@@ -400,7 +400,7 @@ export function MemorisationModule() {
                   Chunk your essay, extract cues, and receive a rehearsal schedule built around spaced repetition.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 <Form {...essayForm}>
                   <form className="space-y-6" onSubmit={onSubmitEssay}>
                     <div className="grid gap-4 md:grid-cols-2">
@@ -526,7 +526,7 @@ export function MemorisationModule() {
                   Turn lists of facts into escalating prompts with built-in reflection and spacing cues.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 <Form {...recallForm}>
                   <form className="space-y-6" onSubmit={onSubmitRecall}>
                     <div className="grid gap-4 md:grid-cols-2">

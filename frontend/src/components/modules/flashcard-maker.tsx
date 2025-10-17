@@ -289,7 +289,7 @@ export function FlashcardMakerModule() {
           </CardHeader>
         </Card>
         <Card>
-          <CardContent>
+          <CardContent className="pt-6">
             <Form {...form}>
               <form className="space-y-6" onSubmit={handleGenerate}>
               <FormField
