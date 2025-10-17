@@ -24,7 +24,7 @@ export function RequireAuth({ children }: RequireAuthProps) {
 
   if (status === "unauthenticated") {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex items-center justify-center min-h-screen">
         <Card className="max-w-md w-full mx-4">
           <CardHeader className="text-center space-y-4">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">

@@ -96,6 +96,9 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
           password: signupValues.password,
           name: signupValues.name,
         });
+        toast.success("Account created! Please check your email to verify your account.", {
+          duration: 6000,
+        });
       }
       handleClose(false);
     } catch {

@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { usePreferencesStore } from "@/store/preferences";
 import { SubjectSelect } from "@/components/subject-select";
+import { useAuthStore } from "@/store/auth";
+import { useUIStore } from "@/store/ui";
 
 interface TutorChatbotProps {
   className?: string;
@@ -30,6 +32,8 @@ const initialAssistantMessage: ChatMessage = {
 export function TutorChatbot({ className }: TutorChatbotProps) {
   const subject = usePreferencesStore((state) => state.subject);
   const updatePreferences = usePreferencesStore((state) => state.update);
+  const status = useAuthStore((state) => state.status);
+  const setAuthDialogOpen = useUIStore((state) => state.setAuthDialogOpen);
   const [open, setOpen] = React.useState(false);
   const [messages, setMessages] = React.useState<ChatMessage[]>([initialAssistantMessage]);
   const [input, setInput] = React.useState("");
@@ -74,8 +78,22 @@ export function TutorChatbot({ className }: TutorChatbotProps) {
     }
   }, [messages, open]);
 
+  const handleOpen = () => {
+    if (status !== "authenticated") {
+      toast.error("Please sign in to use the AI tutor");
+      setAuthDialogOpen(true);
+      return;
+    }
+    setOpen(true);
+  };
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (status !== "authenticated") {
+      toast.error("Please sign in to use the AI tutor");
+      setAuthDialogOpen(true);
+      return;
+    }
     if (!input.trim()) {
       toast.info("Enter a question for the tutor");
       return;
@@ -107,7 +125,7 @@ export function TutorChatbot({ className }: TutorChatbotProps) {
             transition={{ duration: 0.15 }}
           >
             <Button
-              onClick={() => setOpen(true)}
+              onClick={handleOpen}
               size="icon"
               className="h-12 w-12 rounded-full shadow-lg"
             >
