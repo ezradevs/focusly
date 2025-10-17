@@ -15,7 +15,6 @@ import {
   PenTool,
   ArrowRightLeft,
   Loader2,
-  Volume2,
   Send,
   Eye,
   EyeOff,
@@ -50,7 +49,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const formSchema = z.object({
   language: z.string().min(1, "Please enter a language"),
@@ -272,21 +271,27 @@ export function LanguagePracticeModule() {
         transition={{ duration: 0.25 }}
         className="space-y-6"
       >
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Languages className="h-6 w-6 text-primary" />
-            <CardTitle className="text-xl font-semibold">
-              Language Practice Hub
-            </CardTitle>
-          </div>
-          <CardDescription>
-            Practice vocabulary, grammar, conversation, writing, and translation
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={onSubmit} className="space-y-6">
+        <Card className="border-primary/15 bg-gradient-to-br from-violet-500/20 via-indigo-400/10 to-sky-500/20">
+          <CardHeader className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Languages className="h-6 w-6 text-primary" />
+              <CardTitle className="text-2xl font-semibold">Language Practice Hub</CardTitle>
+            </div>
+            <CardDescription className="text-base">
+              Explore immersive vocabulary, grammar, dialogue, writing, and translation drills with real-time bilingual support.
+            </CardDescription>
+            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <Badge variant="outline">Five dynamic practice modes</Badge>
+              <Badge variant="outline">Live conversation coaching</Badge>
+              <Badge variant="outline">Bilingual feedback + audio</Badge>
+            </div>
+          </CardHeader>
+        </Card>
+
+        <Card>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={onSubmit} className="space-y-6">
               {/* Language and Level Selection */}
               <div className="grid gap-4 md:grid-cols-2">
                 <FormField

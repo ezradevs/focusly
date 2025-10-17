@@ -32,6 +32,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Form,
   FormControl,
@@ -212,22 +213,27 @@ export function NotesSummariserModule() {
         transition={{ duration: 0.25 }}
         className="space-y-6"
       >
-      <Card>
-        <CardHeader className="space-y-1">
-          <div className="flex items-center gap-2">
-            <NotebookPen className="h-6 w-6 text-primary" />
-            <CardTitle className="text-xl font-semibold">
-              Notes Summariser
-            </CardTitle>
-          </div>
-          <CardDescription>
-            Paste or upload your notes to generate a concise study pack with key
-            points and terminology.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form className="space-y-6" onSubmit={onSubmit}>
+        <Card className="border-primary/15 bg-gradient-to-br from-sky-500/20 via-cyan-400/10 to-blue-600/20">
+          <CardHeader className="space-y-3">
+            <div className="flex items-center gap-2">
+              <NotebookPen className="h-6 w-6 text-primary" />
+              <CardTitle className="text-2xl font-semibold">Notes Summariser</CardTitle>
+            </div>
+            <CardDescription className="text-base">
+              Transform dense notes into focused study packs with instant key points, definitions, and export options.
+            </CardDescription>
+            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <Badge variant="outline">Understands long-form notes</Badge>
+              <Badge variant="outline">Exam-tailored tone controls</Badge>
+              <Badge variant="outline">One-click export + copy</Badge>
+            </div>
+          </CardHeader>
+        </Card>
+
+        <Card>
+          <CardContent>
+            <Form {...form}>
+              <form className="space-y-6" onSubmit={onSubmit}>
               <div className="grid gap-4 md:grid-cols-2">
                 <FormField
                   control={form.control}

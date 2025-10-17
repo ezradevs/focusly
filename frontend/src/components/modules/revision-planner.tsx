@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { CalendarIcon, Download, FileSpreadsheet, Loader2, Map } from "lucide-react";
+import { CalendarIcon, Download, Loader2, Map } from "lucide-react";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -112,19 +112,27 @@ export function RevisionPlannerModule() {
         transition={{ duration: 0.25 }}
         className="grid gap-6 lg:grid-cols-[1fr_1.2fr]"
       >
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <FileSpreadsheet className="h-6 w-6 text-primary" />
-            <CardTitle className="text-xl font-semibold">Revision Planner</CardTitle>
-          </div>
-          <CardDescription>
-            Generate a week-by-week plan with day-level actions, balanced workload, and success tips.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form className="space-y-5" onSubmit={handleSubmit}>
+        <Card className="border-primary/15 bg-gradient-to-br from-emerald-400/20 via-green-300/10 to-green-600/25 lg:col-span-2">
+          <CardHeader className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Map className="h-6 w-6 text-primary" />
+              <CardTitle className="text-2xl font-semibold">Revision Planner</CardTitle>
+            </div>
+            <CardDescription className="text-base">
+              Build a realistic study roadmap that balances workload, syncs to your exam dates, and keeps motivation on track.
+            </CardDescription>
+            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <Badge variant="outline">Weekly + daily breakdowns</Badge>
+              <Badge variant="outline">Auto-adjusts workload</Badge>
+              <Badge variant="outline">Downloadable for sharing</Badge>
+            </div>
+          </CardHeader>
+        </Card>
+
+        <Card>
+          <CardContent>
+            <Form {...form}>
+              <form className="space-y-5" onSubmit={handleSubmit}>
               <FormField
                 control={form.control}
                 name="subjects"

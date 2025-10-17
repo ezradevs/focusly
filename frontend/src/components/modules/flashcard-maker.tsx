@@ -272,19 +272,27 @@ export function FlashcardMakerModule() {
         transition={{ duration: 0.25 }}
         className="space-y-6"
       >
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Layers3 className="h-6 w-6 text-primary" />
-            <CardTitle className="text-xl font-semibold">Flashcard Maker</CardTitle>
-          </div>
-          <CardDescription>
-            Transform notes into intelligent flashcard suggestions. Supports basic, cloze, and image-occlusion formats.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form className="space-y-6" onSubmit={handleGenerate}>
+        <Card className="border-primary/15 bg-gradient-to-br from-teal-500/20 via-teal-400/10 to-cyan-500/25">
+          <CardHeader className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Layers3 className="h-6 w-6 text-primary" />
+              <CardTitle className="text-2xl font-semibold">Flashcard Maker</CardTitle>
+            </div>
+            <CardDescription className="text-base">
+              Spin up spaced repetition decks with AI-powered templates for cloze, image occlusion, and classic Q&A cards.
+            </CardDescription>
+            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <Badge variant="outline">Smart card type mix</Badge>
+              <Badge variant="outline">Deck + study viewer integration</Badge>
+              <Badge variant="outline">Image occlusion ready</Badge>
+            </div>
+          </CardHeader>
+        </Card>
+
+        <Card>
+          <CardContent>
+            <Form {...form}>
+              <form className="space-y-6" onSubmit={handleGenerate}>
               <FormField
                 control={form.control}
                 name="subject"
@@ -385,10 +393,10 @@ export function FlashcardMakerModule() {
               </div>
             </form>
           </Form>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <Card>
+        <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
