@@ -112,7 +112,6 @@ export function QuestionGeneratorModule() {
       void queryClient.invalidateQueries({ queryKey: ["outputs"] });
       toast.success("Generated question set saved for Quiz Mode");
     } catch (error) {
-      console.error(error);
       toast.error(
         error instanceof Error
           ? error.message

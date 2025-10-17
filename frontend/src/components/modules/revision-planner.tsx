@@ -84,7 +84,6 @@ export function RevisionPlannerModule() {
       void queryClient.invalidateQueries({ queryKey: ["outputs"] });
       toast.success("Revision plan ready");
     } catch (error) {
-      console.error(error);
       toast.error(error instanceof Error ? error.message : "Could not build planner");
     } finally {
       setIsLoading(false);

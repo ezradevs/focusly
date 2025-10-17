@@ -40,7 +40,6 @@ export default function LibraryPage() {
       setFilteredOutputs(response.outputs);
     } catch (error) {
       toast.error("Failed to load library");
-      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -79,7 +78,6 @@ export default function LibraryPage() {
       setViewingOutput(null);
     } catch (error) {
       toast.error("Failed to delete output");
-      console.error(error);
     }
   };
 

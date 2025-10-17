@@ -177,7 +177,6 @@ export function LanguagePracticeModule() {
       void queryClient.invalidateQueries({ queryKey: ["outputs"] });
       toast.success("Practice session generated!");
     } catch (error) {
-      console.error(error);
       const message =
         error instanceof Error ? error.message : "Failed to generate practice session";
       toast.error(message);
@@ -257,7 +256,6 @@ export function LanguagePracticeModule() {
 
       setConversationMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
-      console.error(error);
       toast.error("Failed to send message");
     } finally {
       setIsSendingMessage(false);

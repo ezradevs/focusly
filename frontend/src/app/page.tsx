@@ -87,7 +87,7 @@ export default function DashboardPage() {
               title="Total Outputs"
               value={stats.totalOutputs}
               icon={BookOpen}
-              trend="+12% this week"
+              trend={stats.weekTrend}
             />
             <StatCard
               title="Quiz Accuracy"
@@ -273,30 +273,75 @@ function RecentActivityItem({ output }: { output: ModuleOutputRecord }) {
 }
 
 function calculateStats(outputs: ModuleOutputRecord[]) {
+  const now = new Date();
   const totalOutputs = outputs.length;
   const subjects = new Set(outputs.map((o) => o.subject).filter(Boolean)).size;
   const recentSubject = outputs[0]?.subject || "None";
 
-  // Calculate quiz accuracy from quiz sessions
+  // Calculate week-over-week growth
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+  const thisWeekOutputs = outputs.filter(o => new Date(o.createdAt) >= oneWeekAgo).length;
+  const lastWeekOutputs = outputs.filter(o => {
+    const date = new Date(o.createdAt);
+    return date >= twoWeeksAgo && date < oneWeekAgo;
+  }).length;
+
+  let weekTrend = "";
+  if (lastWeekOutputs === 0 && thisWeekOutputs > 0) {
+    weekTrend = "New this week!";
+  } else if (lastWeekOutputs > 0) {
+    const percentChange = Math.round(((thisWeekOutputs - lastWeekOutputs) / lastWeekOutputs) * 100);
+    if (percentChange > 0) {
+      weekTrend = `+${percentChange}% this week`;
+    } else if (percentChange < 0) {
+      weekTrend = `${percentChange}% this week`;
+    } else {
+      weekTrend = "Same as last week";
+    }
+  } else {
+    weekTrend = "Start creating!";
+  }
+
+  // Calculate quiz accuracy from quiz sessions (fixed)
   const quizOutputs = outputs.filter((o) => o.module === "QUIZ_SESSION");
   let totalQuestions = 0;
   let correctAnswers = 0;
 
   quizOutputs.forEach((output) => {
-    const data = output.output as Record<string, unknown>;
-    if (data?.isCorrect !== undefined) {
-      totalQuestions++;
-      if (data.isCorrect) correctAnswers++;
+    const session = output.output as { attempts?: Array<{ isCorrect?: boolean }> };
+    if (session?.attempts && Array.isArray(session.attempts)) {
+      session.attempts.forEach((attempt) => {
+        totalQuestions++;
+        if (attempt.isCorrect) correctAnswers++;
+      });
     }
   });
 
   const quizAccuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
 
-  // Calculate streak (simplified - days with activity)
-  const uniqueDays = new Set(
-    outputs.map((o) => new Date(o.createdAt).toDateString())
-  ).size;
-  const streak = Math.min(uniqueDays, 7); // Cap at 7 for now
+  // Calculate streak (consecutive days with activity)
+  const sortedDates = outputs
+    .map((o) => new Date(o.createdAt))
+    .sort((a, b) => b.getTime() - a.getTime());
+
+  let streak = 0;
+  let currentDate = new Date(now.setHours(0, 0, 0, 0));
+
+  if (sortedDates.length > 0) {
+    const uniqueDates = [...new Set(sortedDates.map(d => d.toDateString()))];
+
+    for (let i = 0; i < uniqueDates.length; i++) {
+      const dateStr = new Date(currentDate).toDateString();
+      if (uniqueDates.includes(dateStr)) {
+        streak++;
+        currentDate.setDate(currentDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+  }
 
   return {
     totalOutputs,
@@ -304,5 +349,6 @@ function calculateStats(outputs: ModuleOutputRecord[]) {
     recentSubject,
     quizAccuracy,
     streak,
+    weekTrend,
   };
 }

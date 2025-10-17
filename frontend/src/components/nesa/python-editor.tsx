@@ -40,7 +40,6 @@ export function PythonEditor({
         pyodideRef.current = pyodide;
         setPyodideReady(true);
       } catch (error) {
-        console.error("Failed to load Pyodide:", error);
         toast.error("Failed to initialize Python environment");
       }
     }

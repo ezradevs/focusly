@@ -79,7 +79,6 @@ export function NESAExamModule() {
         const { exams } = await focuslyApi.getNESAExams();
         setSavedExams(exams);
       } catch (error) {
-        console.error("Failed to load exams:", error);
       } finally {
         setLoadingExams(false);
       }

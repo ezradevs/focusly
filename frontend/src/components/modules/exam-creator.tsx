@@ -107,7 +107,6 @@ export function ExamCreatorModule() {
       void queryClient.invalidateQueries({ queryKey: ["outputs"] });
       toast.success("Exam-style questions generated");
     } catch (error) {
-      console.error(error);
       toast.error(
         error instanceof Error
           ? error.message

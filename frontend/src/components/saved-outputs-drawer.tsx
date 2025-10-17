@@ -24,7 +24,16 @@ import { Separator } from "@/components/ui/separator";
 import { focuslyApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { MODULES, MODULE_TYPE_MAP } from "@/constants/modules";
-import type { ModuleOutputRecord, StoredModuleType } from "@/types";
+import type {
+  ModuleOutputRecord,
+  StoredModuleType,
+  SummaryResult,
+  GeneratedQuestion,
+  QuizSession,
+  FlashcardBuilderResponse,
+  ExamResponse,
+  PlannerResult,
+} from "@/types";
 import { toast } from "sonner";
 import {
   ChevronDown,
@@ -170,23 +179,17 @@ export function SavedOutputsDrawer({ open, onOpenChange }: SavedOutputsDrawerPro
     try {
       switch (output.module) {
         case "NOTES_SUMMARY":
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          return <NotesSummaryViewer data={output.output as any} />;
+          return <NotesSummaryViewer data={output.output as SummaryResult} />;
         case "QUESTION_SET":
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          return <QuestionSetViewer data={output.output as any} />;
+          return <QuestionSetViewer data={output.output as { questions: GeneratedQuestion[] }} />;
         case "QUIZ_SESSION":
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          return <QuizSessionViewer data={output.output as any} />;
+          return <QuizSessionViewer data={output.output as QuizSession} />;
         case "FLASHCARD_DECK":
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          return <FlashcardDeckViewer data={output.output as any} />;
+          return <FlashcardDeckViewer data={output.output as FlashcardBuilderResponse} />;
         case "EXAM_PACK":
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          return <ExamPackViewer data={output.output as any} />;
+          return <ExamPackViewer data={output.output as ExamResponse} />;
         case "REVISION_PLAN":
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          return <RevisionPlanViewer data={output.output as any} />;
+          return <RevisionPlanViewer data={output.output as PlannerResult} />;
         case "MEMORISATION":
           return (
             <MemorisationViewer data={output.output as MemorisationResult} />
@@ -201,7 +204,6 @@ export function SavedOutputsDrawer({ open, onOpenChange }: SavedOutputsDrawerPro
           );
       }
     } catch (error) {
-      console.error("Error rendering module output:", error);
       return (
         <div className="rounded-lg border border-red-500 bg-red-50 p-4 dark:bg-red-950/20">
           <p className="text-sm text-red-600">Unable to render output. Data may be corrupted.</p>

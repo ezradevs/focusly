@@ -55,11 +55,9 @@ export function SQLEditor({
 
           await new Promise<void>((resolve, reject) => {
             script.onload = () => {
-              console.log("sql.js loaded successfully");
               resolve();
             };
             script.onerror = () => {
-              console.error("Failed to load sql.js");
               reject(new Error("Failed to load sql.js"));
             };
             document.head.appendChild(script);
@@ -111,7 +109,6 @@ export function SQLEditor({
         dbRef.current = db;
         setSqlReady(true);
       } catch (error) {
-        console.error("Failed to load SQL.js:", error);
         toast.error("Failed to initialize SQL environment");
       }
     }

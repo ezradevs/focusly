@@ -142,7 +142,6 @@ export function MemorisationModule() {
       await navigator.clipboard.writeText(JSON.stringify(content, null, 2));
       toast.success(`${label} copied to clipboard`);
     } catch (error) {
-      console.error(error);
       toast.error("Unable to copy content");
     }
   };
@@ -156,7 +155,6 @@ export function MemorisationModule() {
       void queryClient.invalidateQueries({ queryKey: ["outputs"] });
       toast.success("Mnemonics generated and saved");
     } catch (error) {
-      console.error(error);
       toast.error(error instanceof Error ? error.message : "Failed to generate mnemonics");
     } finally {
       setLoadingMnemonic(false);
@@ -172,7 +170,6 @@ export function MemorisationModule() {
       void queryClient.invalidateQueries({ queryKey: ["outputs"] });
       toast.success("Essay rehearsal plan saved");
     } catch (error) {
-      console.error(error);
       toast.error(error instanceof Error ? error.message : "Failed to coach essay memorisation");
     } finally {
       setLoadingEssay(false);
@@ -204,7 +201,6 @@ export function MemorisationModule() {
       void queryClient.invalidateQueries({ queryKey: ["outputs"] });
       toast.success("Recall drills ready to use");
     } catch (error) {
-      console.error(error);
       toast.error(error instanceof Error ? error.message : "Failed to generate drills");
     } finally {
       setLoadingRecall(false);

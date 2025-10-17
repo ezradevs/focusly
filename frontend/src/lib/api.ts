@@ -202,6 +202,12 @@ export const focuslyApi = {
       body: JSON.stringify({ token }),
     }),
 
+  resendVerification: (email: string) =>
+    request<{ success: boolean; message: string }>("/api/auth/resend-verification", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
   requestPasswordReset: (email: string) =>
     request<{ success: boolean; message: string }>("/api/auth/password/reset-request", {
       method: "POST",

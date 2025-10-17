@@ -129,7 +129,6 @@ export function NotesSummariserModule() {
               return;
             }
           } catch (pdfError) {
-            console.error("PDF parsing error:", pdfError);
             toast.error(`PDF error: ${pdfError instanceof Error ? pdfError.message : "Unknown error"}`);
             return;
           }
@@ -140,8 +139,7 @@ export function NotesSummariserModule() {
 
         form.setValue("text", text, { shouldDirty: true, shouldTouch: true });
         toast.success(`Loaded ${file.name}`);
-      } catch (error) {
-        console.error("File upload error:", error);
+      } catch {
         toast.error("Failed to read file. Please try again.");
       }
     },
@@ -164,7 +162,6 @@ export function NotesSummariserModule() {
       void queryClient.invalidateQueries({ queryKey: ["outputs"] });
       toast.success("Summary ready");
     } catch (err) {
-      console.error(err);
       const message =
         err instanceof Error ? err.message : "Failed to summarise notes.";
       setError(message);

@@ -29,8 +29,15 @@ export const useAuthStore = create<AuthState>((set) => ({
       } else {
         set({ user: null, status: "unauthenticated", error: null });
       }
-    } catch {
+    } catch (error) {
+      // Failed to fetch user - likely not logged in or network error
+      // This is expected behavior, so we don't set an error message
       set({ user: null, status: "unauthenticated", error: null });
+
+      // In development, log the error for debugging
+      if (process.env.NODE_ENV === "development") {
+        console.info("Auth bootstrap failed:", error instanceof Error ? error.message : "Unknown error");
+      }
     }
   },
   login: async ({ email, password }) => {
@@ -56,8 +63,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: async () => {
     try {
       await focuslyApi.logout();
-    } catch (error) {
-      console.error(error);
+    } catch {
+      // Silently fail - user will be logged out regardless
     } finally {
       set({ user: null, status: "unauthenticated" });
     }

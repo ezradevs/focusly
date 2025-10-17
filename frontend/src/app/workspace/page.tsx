@@ -42,10 +42,11 @@ export default function WorkspacePage() {
 
     setIsResendingVerification(true);
     try {
-      // We don't have a resend endpoint, so we'll just show a message
-      toast.info("Please check your email for the verification link sent when you signed up.");
+      const response = await focuslyApi.resendVerification(user.email);
+      toast.success(response.message);
     } catch (error) {
-      toast.error("Failed to resend verification email");
+      const message = error instanceof Error ? error.message : "Failed to resend verification email";
+      toast.error(message);
     } finally {
       setIsResendingVerification(false);
     }

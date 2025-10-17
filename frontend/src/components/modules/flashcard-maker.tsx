@@ -142,7 +142,6 @@ export function FlashcardMakerModule() {
       void queryClient.invalidateQueries({ queryKey: ["outputs"] });
       toast.success("Flashcard ideas ready");
     } catch (error) {
-      console.error(error);
       toast.error(
         error instanceof Error ? error.message : "Unable to build flashcards"
       );

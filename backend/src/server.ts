@@ -620,6 +620,58 @@ app.post(
   })
 );
 
+// Resend Verification Email
+app.post(
+  "/api/auth/resend-verification",
+  authLimiter,
+  withErrorBoundary(async (req, res) => {
+    const { email } = z.object({ email: z.string().email() }).parse(req.body);
+
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    // Always return success to prevent email enumeration
+    if (!user) {
+      return res.json({ success: true, message: "If that email exists and is unverified, a verification link has been sent." });
+    }
+
+    // Check if already verified
+    if (user.emailVerified) {
+      return res.json({ success: true, message: "Email is already verified." });
+    }
+
+    // Check if there's an existing valid token (less than 23 hours old)
+    if (user.tokenExpiresAt && user.tokenExpiresAt > new Date()) {
+      // Token is still valid, send the same one
+      return res.json({ success: true, message: "A verification email was already sent. Please check your inbox." });
+    }
+
+    // Generate new verification token (hash it before storing)
+    const { token: rawToken, hashedToken } = generateToken();
+    const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        verificationToken: hashedToken,
+        tokenExpiresAt,
+      },
+    });
+
+    // Send verification email with raw token
+    try {
+      await sendVerificationEmail({
+        email: user.email,
+        ...(user.name ? { name: user.name } : {}),
+        verificationToken: rawToken,
+      });
+    } catch (error) {
+      // Log error but still return success
+    }
+
+    res.json({ success: true, message: "Verification email sent. Please check your inbox." });
+  })
+);
+
 // Password Reset Request
 app.post(
   "/api/auth/password/reset-request",

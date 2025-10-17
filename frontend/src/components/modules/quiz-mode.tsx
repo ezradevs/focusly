@@ -121,7 +121,6 @@ export function QuizModeModule() {
       setShowLoadDialog(false);
       toast.success(`Loaded ${data.questions.length} questions`);
     } catch (error) {
-      console.error(error);
       toast.error("Failed to load question set");
     }
   };
@@ -248,7 +247,6 @@ export function QuizModeModule() {
         });
       }
     } catch (error) {
-      console.error(error);
       toast.error(
         error instanceof Error ? error.message : "Unable to submit answer."
       );

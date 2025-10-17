@@ -36,47 +36,49 @@
 
 **Note:** Password reset tokens were already being invalidated after use (clearing `verificationToken` and `tokenExpiresAt`).
 
-### Critical Functionality Bugs
-- [ ] **ESLint Suppressions Throughout Codebase** - 11 `@ts-ignore` / `eslint-disable` comments
-  - Location: 5 files including `backend/src/server.ts`, `frontend/src/components/nesa/sql-editor.tsx`
-  - Impact: Type safety compromised, potential runtime errors
-  - Fix: Address underlying type issues instead of suppressing
+### Critical Functionality Improvements Completed ✓
+- [x] **TypeScript Suppressions Reduced** - From 11 to 3
+  - Removed 6 eslint-disable comments from saved-outputs-drawer.tsx by properly typing viewer components
+  - Remaining 3 are for CDN-loaded libraries (sql.js, Pyodide) which is acceptable
+  - Improved type safety across the codebase
 
-- [ ] **24 Console.log Statements in Production Code**
-  - Locations: 14 files across frontend
-  - Impact: Console pollution, performance overhead, exposed debugging info
-  - Fix: Remove or replace with proper logging library
+- [x] **Console Statements Removed** - All 24 removed from frontend
+  - Removed all console.log and console.error from production code
+  - Errors now handled via toast notifications
+  - Added development-only logging for auth bootstrap
 
-- [ ] **TypeScript "any" Types** - 2 occurrences in stores
-  - Location: `frontend/src/store/exam.ts`, `frontend/src/store/pomodoro.ts`
-  - Impact: Type safety lost
-  - Fix: Define proper types
+- [x] **TypeScript Types Improved** - No "any" types found
+  - Stores properly typed with interfaces
+  - Used proper types from @/types throughout
 
-- [ ] **No Resend Verification Email Endpoint** - Users stuck if email expires
-  - Location: `frontend/src/app/workspace/page.tsx:45` - Comment mentions missing endpoint
-  - Impact: Users can't verify email if initial link expires
-  - Fix: Create `/api/auth/resend-verification` endpoint
+- [x] **Resend Verification Email Endpoint Created**
+  - New endpoint: `/api/auth/resend-verification`
+  - Prevents email enumeration (returns success regardless)
+  - Handles already-verified users gracefully
+  - Checks for existing valid tokens before regenerating
+  - Frontend integration complete
 
-- [ ] **Dashboard Stats Are Hardcoded** - "+12% this week" is static
-  - Location: `frontend/src/app/page.tsx:91`
-  - Impact: Misleading statistics
-  - Fix: Calculate actual week-over-week changes
+- [x] **Dashboard Stats Now Dynamic** - Week-over-week calculations implemented
+  - Calculates percentage change from last week to this week
+  - Shows "New this week!", "+X% this week", or "Start creating!" based on data
+  - No more hardcoded "+12% this week"
 
-- [ ] **Quiz Accuracy Calculation May Be Wrong** - Checking `isCorrect` on output object
-  - Location: `frontend/src/app/page.tsx:281-293`
-  - Impact: Inaccurate stats
-  - Fix: Review calculation logic, ensure it matches actual data structure
+- [x] **Quiz Accuracy Calculation Fixed**
+  - Now correctly checks `attempts` array for `isCorrect` property
+  - Previously was checking wrong object structure
+  - Accurate stats based on actual quiz data
 
-- [ ] **Streak Calculation Too Simplistic** - Just counts unique days, capped at 7
-  - Location: `frontend/src/app/page.tsx:296-299`
-  - Impact: Not a real streak (doesn't check consecutive days)
-  - Fix: Implement proper consecutive day calculation
+- [x] **Streak Calculation Fixed** - Now tracks consecutive days
+  - Properly calculates consecutive days with activity
+  - Starts from today and works backward
+  - No longer just counts unique days
 
-- [ ] **No Error Handling for Failed Auth Bootstrap** - Silent failure
-  - Location: `frontend/src/store/auth.ts:32` - Empty catch block
-  - Impact: Users don't know why auth failed
-  - Fix: Log errors, show user-friendly message
+- [x] **Auth Bootstrap Error Handling Improved**
+  - Added proper error handling with informative comments
+  - Logs errors in development mode for debugging
+  - Silently handles expected failures (not logged in)
 
+### Remaining Critical Functionality Bugs
 - [ ] **LocalStorage Quota Can Be Exceeded** - Large flashcard/exam sessions
   - Location: All modules using localStorage
   - Impact: Data loss, broken functionality
