@@ -11,7 +11,7 @@ import { ensureDatabase } from "./lib/bootstrap";
 import { attachUser, requireAuth, withErrorBoundary } from "./middleware/auth";
 import { AUTH_COOKIE_NAME, createAuthToken } from "./utils/jwt";
 import { runChatCompletion } from "./services/openai";
-import { sendVerificationEmail } from "./services/email";
+import { sendVerificationEmail, sendWelcomeEmail } from "./services/email";
 import crypto from "crypto";
 
 const app = express();
@@ -434,6 +434,17 @@ app.post(
         tokenExpiresAt: null,
       },
     });
+
+    // Send welcome email after successful verification
+    try {
+      await sendWelcomeEmail({
+        email: user.email,
+        ...(user.name ? { name: user.name } : {}),
+      });
+    } catch (error) {
+      console.error("Failed to send welcome email:", error);
+      // Continue even if welcome email fails
+    }
 
     res.json({ success: true, message: "Email verified successfully!" });
   })

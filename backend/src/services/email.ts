@@ -1,4 +1,6 @@
 import { Resend } from "resend";
+import * as fs from "fs";
+import * as path from "path";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -152,6 +154,62 @@ If you didn't sign up for Focusly, you can safely ignore this email.
     return { success: true, data };
   } catch (error) {
     console.error("Error sending verification email:", error);
+    throw error;
+  }
+}
+
+interface SendWelcomeEmailParams {
+  email: string;
+  name?: string;
+  unsubscribeUrl?: string;
+}
+
+export async function sendWelcomeEmail({
+  email,
+  name,
+  unsubscribeUrl = "https://focusly.one/unsubscribe",
+}: SendWelcomeEmailParams) {
+  const firstName = name?.split(" ")[0] || "there";
+  const currentYear = new Date().getFullYear();
+
+  try {
+    // Load email templates
+    const htmlTemplate = fs.readFileSync(
+      path.join(__dirname, "../../emails/welcome.html"),
+      "utf-8"
+    );
+    const textTemplate = fs.readFileSync(
+      path.join(__dirname, "../../emails/welcome.txt"),
+      "utf-8"
+    );
+
+    // Replace placeholders
+    const html = htmlTemplate
+      .replace(/\{\{name\}\}/g, firstName)
+      .replace(/\{\{year\}\}/g, String(currentYear))
+      .replace(/\{\{unsubscribe_url\}\}/g, unsubscribeUrl);
+
+    const text = textTemplate
+      .replace(/\{\{name\}\}/g, firstName)
+      .replace(/\{\{year\}\}/g, String(currentYear))
+      .replace(/\{\{unsubscribe_url\}\}/g, unsubscribeUrl);
+
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM || "Focusly <noreply@focusly.one>",
+      to: email,
+      subject: "Welcome to Focusly - Let's Start Studying! 🎓",
+      html,
+      text,
+    });
+
+    if (error) {
+      console.error("Failed to send welcome email:", error);
+      throw new Error("Failed to send welcome email");
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error("Error sending welcome email:", error);
     throw error;
   }
 }
