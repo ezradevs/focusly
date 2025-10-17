@@ -97,7 +97,15 @@ npx prisma generate  # Regenerate Prisma client after schema changes
 7. **Commit** (see below)
 
 ### Git Commit Preferences
-**ALWAYS create a git commit MESSAGE (not command) for Ezra after completing a feature or significant change.**
+**🚨 CRITICAL: NEVER execute git commits using `git commit` command!**
+
+**ONLY provide commit MESSAGES for Ezra to use manually.**
+
+After completing a feature or significant change:
+- ✅ DO: Provide a well-formatted commit message
+- ❌ DON'T: Run `git add`, `git commit`, `git push`, or any git commands
+- ✅ DO: Stage changes with `git status` to show what will be committed
+- ❌ DON'T: Actually commit - Ezra will do this manually
 
 
 ## Database (Supabase PostgreSQL)
@@ -251,15 +259,20 @@ NEXT_PUBLIC_API_BASE_URL=https://focusly-backend-kappa.vercel.app
 
 ## Current Status
 ✅ Full authentication system (signup, login, JWT)
-✅ 7 learning modules functional
+✅ Email verification with Resend (24-hour expiry)
+✅ Password reset flow (1-hour token expiry)
+✅ Welcome emails sent after verification
+✅ Module access control (blocks unverified users)
+✅ 8 learning modules functional (including NESA Software Engineering Exam)
 ✅ Database persistence with Supabase
 ✅ Both frontend and backend deployed on Vercel
 ✅ PDF upload support for notes
 ✅ Interactive language conversation mode
 ✅ Responsive UI with dark mode support
+✅ Custom domain: focusly.one (frontend) + api.focusly.one (backend)
+✅ Email domain: noreply@focusly.one
 
 ## Known Issues / TODO
-- API endpoints don't require authentication (intentional for now)
 - Rate limiting not implemented
-- No email verification on signup
 - Pomodoro timer notifications require permission
+- No "resend verification email" endpoint (users must use original email)

@@ -62,11 +62,11 @@ export default function WorkspacePage() {
             </AlertTitle>
             <AlertDescription className="mt-2 text-yellow-800 dark:text-yellow-200">
               <p className="mb-4">
-                To use Focusly's AI-powered learning modules, please verify your email address.
+                To use Focusly&apos;s AI-powered learning modules, please verify your email address.
                 We sent a verification link to <strong>{user.email}</strong> when you signed up.
               </p>
               <p className="mb-4 text-sm">
-                Check your spam folder if you don't see it. The verification link expires after 24 hours.
+                Check your spam folder if you don&apos;t see it. The verification link expires after 24 hours.
               </p>
               <Button
                 onClick={handleResendVerification}
