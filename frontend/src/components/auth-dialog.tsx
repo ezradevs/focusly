@@ -4,7 +4,7 @@ import * as React from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Lock, Mail, User } from "lucide-react";
+import { Loader2, Lock, Mail, User, Check, X } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
 import { toast } from "sonner";
 import { focuslyApi } from "@/lib/api";
@@ -27,13 +27,23 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+// Strong password validation matching backend
+const passwordSchema = z.string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(/[0-9]/, "Password must contain at least one number")
+  .regex(/[^a-zA-Z0-9]/, "Password must contain at least one special character");
+
 const loginSchema = z.object({
-  email: z.string().email("Enter a valid email"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
 });
 
-const signupSchema = loginSchema.extend({
-  name: z.string().min(2, "Name too short").max(80, "Name too long"),
+const signupSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: passwordSchema,
+  name: z.string().min(2, "Name must be at least 2 characters").max(80, "Name must be less than 80 characters"),
 });
 
 type LoginValues = z.infer<typeof loginSchema>;
@@ -44,6 +54,16 @@ type FormValues = LoginValues | SignupValues;
 interface AuthDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+// Password requirements helper component
+function PasswordRequirement({ met, text }: { met: boolean; text: string }) {
+  return (
+    <div className={cn("flex items-center gap-2 text-xs", met ? "text-green-600" : "text-muted-foreground")}>
+      {met ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+      <span>{text}</span>
+    </div>
+  );
 }
 
 export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
@@ -67,6 +87,9 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
       name: "",
     } as SignupValues,
   });
+
+  // Watch password for real-time validation feedback
+  const password = form.watch("password") || "";
 
   React.useEffect(() => {
     form.reset({
@@ -283,6 +306,16 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
                       />
                     </div>
                   </FormControl>
+                  {mode === "signup" && password && (
+                    <div className="space-y-1.5 rounded-md bg-muted/50 p-3 mt-2">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Password must contain:</p>
+                      <PasswordRequirement met={password.length >= 8} text="At least 8 characters" />
+                      <PasswordRequirement met={/[a-z]/.test(password)} text="One lowercase letter" />
+                      <PasswordRequirement met={/[A-Z]/.test(password)} text="One uppercase letter" />
+                      <PasswordRequirement met={/[0-9]/.test(password)} text="One number" />
+                      <PasswordRequirement met={/[^a-zA-Z0-9]/.test(password)} text="One special character" />
+                    </div>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

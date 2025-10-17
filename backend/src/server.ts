@@ -62,19 +62,27 @@ const cookieOptions: CookieOptions = {
   path: "/",
 };
 
+// Password validation with strong requirements
+const passwordSchema = z.string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(/[0-9]/, "Password must contain at least one number")
+  .regex(/[^a-zA-Z0-9]/, "Password must contain at least one special character");
+
 const signupSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8, "Password must be at least 8 characters."),
+  email: z.string().email("Please enter a valid email address"),
+  password: passwordSchema,
   name: z
     .string()
-    .min(2, "Name too short")
-    .max(80, "Name too long")
+    .min(2, "Name must be at least 2 characters")
+    .max(80, "Name must be less than 80 characters")
     .optional(),
 });
 
 const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8, "Password must be at least 8 characters."),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
 });
 
 const outputsQuerySchema = z.object({
@@ -499,7 +507,7 @@ app.post(
   withErrorBoundary(async (req, res) => {
     const { token, newPassword } = z.object({
       token: z.string(),
-      newPassword: z.string().min(8, "Password must be at least 8 characters"),
+      newPassword: passwordSchema,
     }).parse(req.body);
 
     const user = await prisma.user.findUnique({
@@ -535,12 +543,12 @@ app.get("/api/auth/me", (req, res) => {
 });
 
 const updateProfileSchema = z.object({
-  name: z.string().min(2, "Name too short").max(80, "Name too long"),
+  name: z.string().min(2, "Name must be at least 2 characters").max(80, "Name must be less than 80 characters"),
 });
 
 const updatePasswordSchema = z.object({
-  currentPassword: z.string().min(8),
-  newPassword: z.string().min(8, "Password must be at least 8 characters"),
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: passwordSchema,
 });
 
 app.patch(
