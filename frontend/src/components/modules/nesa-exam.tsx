@@ -336,7 +336,7 @@ export function NESAExamModule() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Generate NESA Software Engineering Exam</CardTitle>
+            <CardTitle className="text-xl font-semibold">Generate NESA Software Engineering Exam</CardTitle>
             <CardDescription>
               Create a realistic NSW HSC Software Engineering practice exam with interactive
               coding, SQL, and diagram questions
