@@ -11,7 +11,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, FileText, ChevronLeft, ChevronRight, Download, Trash2, Calendar, BookOpen } from "lucide-react";
+import {
+  Loader2,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  Code2,
+  Download,
+  Trash2,
+  Calendar,
+  BookOpen,
+} from "lucide-react";
 import { toast } from "sonner";
 import { focuslyApi } from "@/lib/api";
 import type { NESAExam, NESAQuestion, NESAModuleName, ModuleOutputRecord } from "@/types";
@@ -336,7 +346,10 @@ export function NESAExamModule() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl font-semibold">Generate NESA Software Engineering Exam</CardTitle>
+            <div className="flex items-center gap-2">
+              <Code2 className="h-6 w-6 text-primary" />
+              <CardTitle className="text-xl font-semibold">Generate NESA Software Engineering Exam</CardTitle>
+            </div>
             <CardDescription>
               Create a realistic NSW HSC Software Engineering practice exam with interactive
               coding, SQL, and diagram questions

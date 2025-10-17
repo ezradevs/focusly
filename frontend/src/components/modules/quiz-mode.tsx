@@ -10,6 +10,7 @@ import {
   Award,
   CheckCircle2,
   FolderOpen,
+  GraduationCap,
   History,
   Loader2,
   RefreshCw,
@@ -315,9 +316,12 @@ export function QuizModeModule() {
         <Card>
           <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <CardTitle className="text-xl font-semibold">
-                Quiz Mode
-              </CardTitle>
+              <div className="flex items-center gap-2">
+                <GraduationCap className="h-6 w-6 text-primary" />
+                <CardTitle className="text-xl font-semibold">
+                  Quiz Mode
+                </CardTitle>
+              </div>
               <CardDescription>
                 Run through your generated questions with instant AI feedback
                 and analytics.

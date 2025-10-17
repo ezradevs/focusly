@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ClipboardCopy,
+  ClipboardList,
   Loader2,
   Play,
   Sparkles,
@@ -168,9 +169,12 @@ export function QuestionGeneratorModule() {
       >
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl font-semibold">
-            Question Generator
-          </CardTitle>
+          <div className="flex items-center gap-2">
+            <ClipboardList className="h-6 w-6 text-primary" />
+            <CardTitle className="text-xl font-semibold">
+              Question Generator
+            </CardTitle>
+          </div>
           <CardDescription>
             Produce targeted questions for revision, class discussion, or
             self-testing. Supports MCQ, short answer, and extended responses.

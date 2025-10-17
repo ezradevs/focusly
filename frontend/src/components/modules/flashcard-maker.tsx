@@ -12,6 +12,7 @@ import {
   BookOpen,
   Check,
   Layers,
+  Layers3,
   Loader2,
   Plus,
   Sparkles,
@@ -273,7 +274,10 @@ export function FlashcardMakerModule() {
       >
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl font-semibold">Flashcard Maker</CardTitle>
+          <div className="flex items-center gap-2">
+            <Layers3 className="h-6 w-6 text-primary" />
+            <CardTitle className="text-xl font-semibold">Flashcard Maker</CardTitle>
+          </div>
           <CardDescription>
             Transform notes into intelligent flashcard suggestions. Supports basic, cloze, and image-occlusion formats.
           </CardDescription>
