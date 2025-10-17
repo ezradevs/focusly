@@ -272,21 +272,36 @@ export function LanguagePracticeModule() {
         transition={{ duration: 0.25 }}
         className="space-y-6"
       >
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Languages className="h-6 w-6 text-primary" />
-            <CardTitle className="text-xl font-semibold">
-              Language Practice Hub
-            </CardTitle>
-          </div>
-          <CardDescription>
-            Practice vocabulary, grammar, conversation, writing, and translation
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={onSubmit} className="space-y-6">
+        <Card className="border-primary/15 bg-gradient-to-br from-violet-500/15 via-transparent to-sky-500/15">
+          <CardHeader className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Languages className="h-6 w-6 text-primary" />
+              <CardTitle className="text-2xl font-semibold">Language Practice Hub</CardTitle>
+            </div>
+            <CardDescription className="text-base">
+              Explore immersive vocabulary, grammar, dialogue, writing, and translation drills with real-time bilingual support.
+            </CardDescription>
+            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <Badge variant="outline">Five dynamic practice modes</Badge>
+              <Badge variant="outline">Live conversation coaching</Badge>
+              <Badge variant="outline">Bilingual feedback + audio</Badge>
+            </div>
+          </CardHeader>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Languages className="h-6 w-6 text-primary" />
+              <CardTitle className="text-xl font-semibold">Language Practice Hub</CardTitle>
+            </div>
+            <CardDescription>
+              Practice vocabulary, grammar, conversation, writing, and translation
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={onSubmit} className="space-y-6">
               {/* Language and Level Selection */}
               <div className="grid gap-4 md:grid-cols-2">
                 <FormField

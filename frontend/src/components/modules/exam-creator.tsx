@@ -198,19 +198,36 @@ export function ExamCreatorModule() {
         transition={{ duration: 0.25 }}
         className="space-y-6"
       >
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <BookOpenCheck className="h-6 w-6 text-primary" />
-            <CardTitle className="text-xl font-semibold">Exam-Style Creator</CardTitle>
-          </div>
-          <CardDescription>
-            Generate realistic extended-response questions with high-band exemplars and targeted evaluation.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form className="grid gap-6 md:grid-cols-2" onSubmit={handleSubmit}>
+        <Card className="border-primary/15 bg-gradient-to-br from-orange-400/15 via-transparent to-rose-500/15">
+          <CardHeader className="space-y-3">
+            <div className="flex items-center gap-2">
+              <BookOpenCheck className="h-6 w-6 text-primary" />
+              <CardTitle className="text-2xl font-semibold">Exam-Style Creator</CardTitle>
+            </div>
+            <CardDescription className="text-base">
+              Craft extended-response exams with tailored criteria, band 6 samples, and live marking sessions for revision.
+            </CardDescription>
+            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <Badge variant="outline">Maps to syllabus outcomes</Badge>
+              <Badge variant="outline">Band 6 exemplars on tap</Badge>
+              <Badge variant="outline">Practice + marking workflows</Badge>
+            </div>
+          </CardHeader>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <BookOpenCheck className="h-6 w-6 text-primary" />
+              <CardTitle className="text-xl font-semibold">Exam-Style Creator</CardTitle>
+            </div>
+            <CardDescription>
+              Generate realistic extended-response questions with high-band exemplars and targeted evaluation.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form className="grid gap-6 md:grid-cols-2" onSubmit={handleSubmit}>
               <div className="space-y-6">
                 <FormField
                   control={form.control}
@@ -364,7 +381,7 @@ export function ExamCreatorModule() {
             </form>
           </Form>
         </CardContent>
-      </Card>
+        </Card>
 
       {isLoading && (
         <Card>
