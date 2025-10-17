@@ -4,17 +4,45 @@ import cookieParser from "cookie-parser";
 import bcrypt from "bcryptjs";
 import { ModuleType, Prisma } from "@prisma/client";
 import { z } from "zod";
+import rateLimit from "express-rate-limit";
 
 import { CLIENT_ORIGIN, PORT } from "./config";
 import { prisma } from "./lib/prisma";
 import { ensureDatabase } from "./lib/bootstrap";
 import { attachUser, requireAuth, withErrorBoundary } from "./middleware/auth";
+import { sanitizeRequestBody } from "./middleware/sanitize";
 import { AUTH_COOKIE_NAME, createAuthToken } from "./utils/jwt";
+import { generateToken, hashToken } from "./utils/tokens";
 import { runChatCompletion } from "./services/openai";
 import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail } from "./services/email";
-import crypto from "crypto";
 
 const app = express();
+
+// Rate limiting configuration
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // 1000 requests per 15 minutes
+  message: "Too many requests from this IP, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 requests per 15 minutes for auth endpoints
+  message: "Too many authentication attempts, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true, // Don't count successful requests
+});
+
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 AI requests per 15 minutes
+  message: "Too many AI generation requests, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 app.use(
   cors({
@@ -51,9 +79,18 @@ app.use(
 );
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
+app.use(sanitizeRequestBody); // Sanitize all incoming request bodies to prevent XSS
 app.use(cookieParser());
+app.use(generalLimiter); // Apply general rate limiting to all routes
 app.use(attachUser);
 
+// CSRF Protection Strategy:
+// We use SameSite cookies for CSRF protection:
+// - Development: sameSite="lax" prevents CSRF from external sites
+// - Production: sameSite="none" with secure=true for cross-domain, protected by strict CORS
+// - All cookies are HTTP-only, preventing XSS attacks from stealing tokens
+// - CORS configuration only allows specific origins
+// This approach provides strong CSRF protection without requiring explicit CSRF tokens
 const cookieOptions: CookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
@@ -417,6 +454,7 @@ app.get(
 
 app.post(
   "/api/auth/signup",
+  authLimiter,
   withErrorBoundary(async (req, res) => {
     const payload = signupSchema.parse(req.body);
     const existing = await prisma.user.findUnique({ where: { email: payload.email } });
@@ -424,8 +462,8 @@ app.post(
       return res.status(409).json({ error: "Email is already registered." });
     }
 
-    // Generate verification token
-    const verificationToken = crypto.randomBytes(32).toString("hex");
+    // Generate verification token (hash it before storing in database)
+    const { token: rawToken, hashedToken } = generateToken();
     const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
 
     const passwordHash = await bcrypt.hash(payload.password, 12);
@@ -435,17 +473,17 @@ app.post(
         passwordHash,
         name: payload.name ?? null,
         emailVerified: false,
-        verificationToken,
+        verificationToken: hashedToken, // Store hashed token in database
         tokenExpiresAt,
       },
     });
 
-    // Send verification email
+    // Send verification email with raw token
     try {
       await sendVerificationEmail({
         email: user.email,
         ...(user.name ? { name: user.name } : {}),
-        verificationToken,
+        verificationToken: rawToken, // Send raw token to user
       });
     } catch (error) {
       console.error("Failed to send verification email:", error);
@@ -463,6 +501,7 @@ app.post(
 
 app.post(
   "/api/auth/login",
+  authLimiter,
   withErrorBoundary(async (req, res) => {
     const payload = loginSchema.parse(req.body);
     const user = await prisma.user.findUnique({ where: { email: payload.email } });
@@ -471,10 +510,54 @@ app.post(
       return res.status(401).json({ error: "Invalid credentials." });
     }
 
+    // Check if account is locked out
+    if (user.lockoutUntil && user.lockoutUntil > new Date()) {
+      const minutesLeft = Math.ceil((user.lockoutUntil.getTime() - Date.now()) / (1000 * 60));
+      return res.status(429).json({
+        error: `Account is locked due to too many failed login attempts. Please try again in ${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''}.`
+      });
+    }
+
     const valid = await bcrypt.compare(payload.password, user.passwordHash);
     if (!valid) {
-      return res.status(401).json({ error: "Invalid credentials." });
+      // Increment failed login attempts
+      const newFailedAttempts = user.failedLoginAttempts + 1;
+      const maxAttempts = 5;
+      const lockoutDuration = 15 * 60 * 1000; // 15 minutes
+
+      if (newFailedAttempts >= maxAttempts) {
+        // Lock the account
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            failedLoginAttempts: newFailedAttempts,
+            lockoutUntil: new Date(Date.now() + lockoutDuration),
+          },
+        });
+        return res.status(429).json({
+          error: "Too many failed login attempts. Your account has been locked for 15 minutes."
+        });
+      } else {
+        // Just increment the counter
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { failedLoginAttempts: newFailedAttempts },
+        });
+        const attemptsLeft = maxAttempts - newFailedAttempts;
+        return res.status(401).json({
+          error: `Invalid credentials. ${attemptsLeft} attempt${attemptsLeft !== 1 ? 's' : ''} remaining before account lockout.`
+        });
+      }
     }
+
+    // Successful login - reset failed attempts and lockout
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        failedLoginAttempts: 0,
+        lockoutUntil: null,
+      },
+    });
 
     const token = createAuthToken({ sub: user.id, email: user.email, name: user.name });
     res.cookie(AUTH_COOKIE_NAME, token, cookieOptions);
@@ -496,8 +579,11 @@ app.post(
   withErrorBoundary(async (req, res) => {
     const { token } = z.object({ token: z.string() }).parse(req.body);
 
+    // Hash the incoming token to compare with stored hash
+    const hashedToken = hashToken(token);
+
     const user = await prisma.user.findUnique({
-      where: { verificationToken: token },
+      where: { verificationToken: hashedToken },
     });
 
     if (!user) {
@@ -537,6 +623,7 @@ app.post(
 // Password Reset Request
 app.post(
   "/api/auth/password/reset-request",
+  authLimiter,
   withErrorBoundary(async (req, res) => {
     const { email } = z.object({ email: z.string().email() }).parse(req.body);
 
@@ -547,24 +634,24 @@ app.post(
       return res.json({ success: true, message: "If that email exists, a reset link has been sent." });
     }
 
-    // Generate reset token (1 hour expiry)
-    const resetToken = crypto.randomBytes(32).toString("hex");
+    // Generate reset token (hash it before storing, 1 hour expiry)
+    const { token: rawToken, hashedToken } = generateToken();
     const tokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
 
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        verificationToken: resetToken,
+        verificationToken: hashedToken, // Store hashed token
         tokenExpiresAt,
       },
     });
 
-    // Send password reset email
+    // Send password reset email with raw token
     try {
       await sendPasswordResetEmail({
         email: user.email,
         ...(user.name ? { name: user.name } : {}),
-        resetToken,
+        resetToken: rawToken, // Send raw token to user
       });
     } catch (error) {
       console.error("Failed to send password reset email:", error);
@@ -578,14 +665,18 @@ app.post(
 // Password Reset Confirm
 app.post(
   "/api/auth/password/reset-confirm",
+  authLimiter,
   withErrorBoundary(async (req, res) => {
     const { token, newPassword } = z.object({
       token: z.string(),
       newPassword: passwordSchema,
     }).parse(req.body);
 
+    // Hash the incoming token to compare with stored hash
+    const hashedToken = hashToken(token);
+
     const user = await prisma.user.findUnique({
-      where: { verificationToken: token },
+      where: { verificationToken: hashedToken },
     });
 
     if (!user) {
@@ -781,6 +872,7 @@ app.delete(
 
 app.post(
   "/api/notes/summarize",
+  aiLimiter,
   withErrorBoundary(async (req, res) => {
     const payload = summaryRequestSchema.parse(req.body);
 
@@ -818,6 +910,7 @@ app.post(
 
 app.post(
   "/api/questions/generate",
+  aiLimiter,
   withErrorBoundary(async (req, res) => {
     const payload = questionGeneratorSchema.parse(req.body);
     const typeBreakdown = payload.questionTypes
@@ -891,6 +984,7 @@ Respond with JSON in the following format:
 
 app.post(
   "/api/quiz/feedback",
+  aiLimiter,
   withErrorBoundary(async (req, res) => {
     const payload = quizFeedbackSchema.parse(req.body);
 
@@ -930,6 +1024,7 @@ Respond with JSON: {"isCorrect": boolean, "feedback": string, "improvementTips":
 
 app.post(
   "/api/flashcards/build",
+  aiLimiter,
   withErrorBoundary(async (req, res) => {
     const payload = flashcardSchema.parse(req.body);
 
@@ -1005,6 +1100,7 @@ Return JSON with structure:
 
 app.post(
   "/api/exams/create",
+  aiLimiter,
   withErrorBoundary(async (req, res) => {
     const payload = examCreatorSchema.parse(req.body);
 
@@ -1061,6 +1157,7 @@ Respond with JSON:
 
 app.post(
   "/api/planner/build",
+  aiLimiter,
   withErrorBoundary(async (req, res) => {
     const payload = plannerSchema.parse(req.body);
 
@@ -1125,6 +1222,7 @@ Return JSON:
 
 app.post(
   "/api/memorisation/mnemonics",
+  aiLimiter,
   withErrorBoundary(async (req, res) => {
     const payload = mnemonicRequestSchema.parse(req.body);
 
@@ -1166,6 +1264,7 @@ app.post(
 
 app.post(
   "/api/memorisation/essay-coach",
+  aiLimiter,
   withErrorBoundary(async (req, res) => {
     const payload = essayCoachSchema.parse(req.body);
 
@@ -1209,6 +1308,7 @@ app.post(
 
 app.post(
   "/api/memorisation/recall-drills",
+  aiLimiter,
   withErrorBoundary(async (req, res) => {
     const payload = recallDrillSchema.parse(req.body);
 
@@ -1254,6 +1354,7 @@ app.post(
 
 app.post(
   "/api/tutor/chat",
+  aiLimiter,
   withErrorBoundary(async (req, res) => {
     const payload = tutorChatSchema.parse(req.body);
 
@@ -1381,6 +1482,7 @@ const languageConversationResponseSchema = z.object({
 
 app.post(
   "/api/language/conversation",
+  aiLimiter,
   withErrorBoundary(async (req, res) => {
     const payload = languageConversationSchema.parse(req.body);
 
@@ -1424,6 +1526,7 @@ Return JSON with:
 
 app.post(
   "/api/language/practice",
+  aiLimiter,
   withErrorBoundary(async (req, res) => {
     const payload = languagePracticeSchema.parse(req.body);
 
@@ -1610,6 +1713,7 @@ const nesaExamResponseSchema = z.object({
 
 app.post(
   "/api/nesa/generate",
+  aiLimiter,
   withErrorBoundary(async (req, res) => {
     const payload = nesaExamSchema.parse(req.body);
 
