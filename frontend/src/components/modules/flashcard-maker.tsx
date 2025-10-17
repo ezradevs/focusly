@@ -272,7 +272,7 @@ export function FlashcardMakerModule() {
         transition={{ duration: 0.25 }}
         className="space-y-6"
       >
-        <Card className="border-primary/15 bg-gradient-to-br from-teal-400/15 via-transparent to-cyan-500/15">
+        <Card className="border-primary/10 bg-gradient-to-br from-teal-400/20 via-cyan-200/20 to-cyan-500/20">
           <CardHeader className="space-y-3">
             <div className="flex items-center gap-2">
               <Layers3 className="h-6 w-6 text-primary" />
@@ -288,17 +288,7 @@ export function FlashcardMakerModule() {
             </div>
           </CardHeader>
         </Card>
-
         <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Layers3 className="h-6 w-6 text-primary" />
-              <CardTitle className="text-xl font-semibold">Flashcard Maker</CardTitle>
-            </div>
-            <CardDescription>
-              Transform notes into intelligent flashcard suggestions. Supports basic, cloze, and image-occlusion formats.
-            </CardDescription>
-          </CardHeader>
           <CardContent>
             <Form {...form}>
               <form className="space-y-6" onSubmit={handleGenerate}>

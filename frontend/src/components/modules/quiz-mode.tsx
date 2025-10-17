@@ -312,7 +312,7 @@ export function QuizModeModule() {
         transition={{ duration: 0.25 }}
         className="grid gap-6 lg:grid-cols-[2fr_1fr]"
       >
-        <Card className="border-primary/15 bg-gradient-to-br from-indigo-500/15 via-transparent to-purple-600/15 lg:col-span-2">
+        <Card className="border-primary/10 bg-gradient-to-br from-indigo-400/20 via-purple-200/20 to-purple-600/20 lg:col-span-2">
           <CardHeader className="space-y-3">
             <div className="flex items-center gap-2">
               <GraduationCap className="h-6 w-6 text-primary" />
@@ -331,16 +331,10 @@ export function QuizModeModule() {
 
         <div className="space-y-6">
           <Card>
-            <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <GraduationCap className="h-6 w-6 text-primary" />
-                  <CardTitle className="text-xl font-semibold">Quiz Mode</CardTitle>
-                </div>
-                <CardDescription>
-                  Run through your generated questions with instant AI feedback and analytics.
-                </CardDescription>
-              </div>
+            <CardHeader className="flex flex-wrap items-center justify-between gap-3">
+              <Badge variant="secondary" className="bg-primary/10 text-primary">
+                Session controls
+              </Badge>
               <div className="flex flex-wrap items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => setViewingHistory((prev) => !prev)}>
                   <History className="mr-2 h-4 w-4" />
