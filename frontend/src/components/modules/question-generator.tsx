@@ -167,7 +167,7 @@ export function QuestionGeneratorModule() {
         transition={{ duration: 0.25 }}
         className="space-y-6"
       >
-        <Card className="border-primary/10 bg-gradient-to-br from-amber-300/20 via-orange-200/20 to-orange-500/20">
+        <Card className="border-primary/10 bg-gradient-to-br from-amber-400/20 via-lime-200/20 to-lime-500/20">
           <CardHeader className="space-y-3">
             <div className="flex items-center gap-2">
               <ClipboardList className="h-6 w-6 text-primary" />
@@ -184,7 +184,7 @@ export function QuestionGeneratorModule() {
           </CardHeader>
         </Card>
         <Card>
-          <CardContent className="pt-6">
+          <CardContent>
             <Form {...form}>
               <form className="space-y-6" onSubmit={onSubmit}>
               <div className="grid gap-4 md:grid-cols-2">

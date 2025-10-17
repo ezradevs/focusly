@@ -129,7 +129,7 @@ export function RevisionPlannerModule() {
           </CardHeader>
         </Card>
         <Card>
-          <CardContent className="pt-6">
+          <CardContent>
             <Form {...form}>
               <form className="space-y-5" onSubmit={handleSubmit}>
               <FormField

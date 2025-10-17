@@ -231,7 +231,7 @@ export function NotesSummariserModule() {
         </Card>
 
         <Card>
-          <CardContent className="pt-6">
+          <CardContent>
             <Form {...form}>
               <form className="space-y-6" onSubmit={onSubmit}>
               <div className="grid gap-4 md:grid-cols-2">

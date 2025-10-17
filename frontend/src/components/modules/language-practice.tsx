@@ -289,7 +289,7 @@ export function LanguagePracticeModule() {
           </CardHeader>
         </Card>
         <Card>
-          <CardContent className="pt-6">
+          <CardContent>
             <Form {...form}>
               <form onSubmit={onSubmit} className="space-y-6">
               {/* Language and Level Selection */}
