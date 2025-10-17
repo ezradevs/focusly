@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { CalendarIcon, Download, Loader2, Map } from "lucide-react";
+import { CalendarIcon, Download, FileSpreadsheet, Loader2, Map } from "lucide-react";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -114,7 +114,10 @@ export function RevisionPlannerModule() {
       >
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl font-semibold">Revision Planner</CardTitle>
+          <div className="flex items-center gap-2">
+            <FileSpreadsheet className="h-6 w-6 text-primary" />
+            <CardTitle className="text-xl font-semibold">Revision Planner</CardTitle>
+          </div>
           <CardDescription>
             Generate a week-by-week plan with day-level actions, balanced workload, and success tips.
           </CardDescription>

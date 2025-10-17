@@ -10,6 +10,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
   BookOpen,
+  BookOpenCheck,
   Calendar,
   CheckCircle2,
   ClipboardCopy,
@@ -199,7 +200,10 @@ export function ExamCreatorModule() {
       >
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl font-semibold">Exam-Style Creator</CardTitle>
+          <div className="flex items-center gap-2">
+            <BookOpenCheck className="h-6 w-6 text-primary" />
+            <CardTitle className="text-xl font-semibold">Exam-Style Creator</CardTitle>
+          </div>
           <CardDescription>
             Generate realistic extended-response questions with high-band exemplars and targeted evaluation.
           </CardDescription>

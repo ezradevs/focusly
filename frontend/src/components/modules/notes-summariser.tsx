@@ -12,6 +12,7 @@ import {
   Download,
   FileText,
   Loader2,
+  NotebookPen,
   RefreshCw,
   UploadCloud,
 } from "lucide-react";
@@ -213,9 +214,12 @@ export function NotesSummariserModule() {
       >
       <Card>
         <CardHeader className="space-y-1">
-          <CardTitle className="text-xl font-semibold">
-            Notes Summariser
-          </CardTitle>
+          <div className="flex items-center gap-2">
+            <NotebookPen className="h-6 w-6 text-primary" />
+            <CardTitle className="text-xl font-semibold">
+              Notes Summariser
+            </CardTitle>
+          </div>
           <CardDescription>
             Paste or upload your notes to generate a concise study pack with key
             points and terminology.
