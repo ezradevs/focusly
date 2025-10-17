@@ -167,22 +167,36 @@ export function QuestionGeneratorModule() {
         transition={{ duration: 0.25 }}
         className="space-y-6"
       >
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <ClipboardList className="h-6 w-6 text-primary" />
-            <CardTitle className="text-xl font-semibold">
-              Question Generator
-            </CardTitle>
-          </div>
-          <CardDescription>
-            Produce targeted questions for revision, class discussion, or
-            self-testing. Supports MCQ, short answer, and extended responses.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form className="space-y-6" onSubmit={onSubmit}>
+        <Card className="border-primary/15 bg-gradient-to-br from-amber-400/15 via-transparent to-lime-500/15">
+          <CardHeader className="space-y-3">
+            <div className="flex items-center gap-2">
+              <ClipboardList className="h-6 w-6 text-primary" />
+              <CardTitle className="text-2xl font-semibold">Question Generator</CardTitle>
+            </div>
+            <CardDescription className="text-base">
+              Produce differentiated question sets with automatic marking guides and one-click staging for Quiz Mode.
+            </CardDescription>
+            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <Badge variant="outline">Topics or pasted notes</Badge>
+              <Badge variant="outline">Mix MCQ, short + extended</Badge>
+              <Badge variant="outline">Sends straight to quizzes</Badge>
+            </div>
+          </CardHeader>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <ClipboardList className="h-6 w-6 text-primary" />
+              <CardTitle className="text-xl font-semibold">Question Generator</CardTitle>
+            </div>
+            <CardDescription>
+              Produce targeted questions for revision, class discussion, or self-testing. Supports MCQ, short answer, and extended responses.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form className="space-y-6" onSubmit={onSubmit}>
               <div className="grid gap-4 md:grid-cols-2">
                 <FormField
                   control={form.control}

@@ -312,121 +312,112 @@ export function QuizModeModule() {
         transition={{ duration: 0.25 }}
         className="grid gap-6 lg:grid-cols-[2fr_1fr]"
       >
-      <div className="space-y-6">
-        <Card>
-          <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <GraduationCap className="h-6 w-6 text-primary" />
-                <CardTitle className="text-xl font-semibold">
-                  Quiz Mode
-                </CardTitle>
-              </div>
-              <CardDescription>
-                Run through your generated questions with instant AI feedback
-                and analytics.
-              </CardDescription>
+        <Card className="border-primary/15 bg-gradient-to-br from-indigo-500/15 via-transparent to-purple-600/15 lg:col-span-2">
+          <CardHeader className="space-y-3">
+            <div className="flex items-center gap-2">
+              <GraduationCap className="h-6 w-6 text-primary" />
+              <CardTitle className="text-2xl font-semibold">Quiz Mode</CardTitle>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setViewingHistory((prev) => !prev)}
-              >
-                <History className="mr-2 h-4 w-4" />
-                {viewingHistory ? "Hide history" : "Show history"}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowLoadDialog(true)}
-              >
-                <FolderOpen className="mr-2 h-4 w-4" />
-                Load saved
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={startFromStaged}
-                disabled={!stagedQuestions.length}
-              >
-                <Sparkles className="mr-2 h-4 w-4" />
-                Load staged
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={resetCurrentSession}
-                disabled={!activeSession}
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
+            <CardDescription className="text-base">
+              Turn generated questions into live drill sessions with adaptive feedback, attempt history, and mastery tracking.
+            </CardDescription>
+            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <Badge variant="outline">Stage sets from Question Generator</Badge>
+              <Badge variant="outline">Instant marking + feedback</Badge>
+              <Badge variant="outline">Performance analytics</Badge>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <Progress value={progress} className="h-2 flex-1" />
-                <Badge variant="outline">
-                  {Math.round(progress)}% complete
-                </Badge>
-              </div>
-              {activeSession && activeSession.attempts.length > 0 && (
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3 text-green-600" />
-                    {activeSession.attempts.filter((a) => a.isCorrect).length} correct
-                  </span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1">
-                    <Target className="h-3 w-3 text-red-600" />
-                    {activeSession.attempts.filter((a) => !a.isCorrect).length} incorrect
-                  </span>
-                </div>
-              )}
-            </div>
-            {activeSession ? (
-              <>
-                <p className="text-sm text-muted-foreground">
-                  Session created{" "}
-                  {new Date(activeSession.createdAt).toLocaleString()} ·{" "}
-                  {activeSession.questions.length} questions
-                </p>
-                {/* Question Indicators */}
-                <div className="flex flex-wrap gap-2">
-                  {activeSession.questions.map((question, index) => {
-                    const isAnswered = attemptsMap.has(question.id);
-                    const isCurrent = index === currentIndex;
-                    const attempt = attemptsMap.get(question.id);
-                    return (
-                      <button
-                        key={question.id}
-                        onClick={() => setCurrentIndex(index)}
-                        className={cn(
-                          "flex h-8 w-8 items-center justify-center rounded-md text-xs font-semibold transition",
-                          isCurrent && "ring-2 ring-primary ring-offset-2",
-                          isAnswered && attempt?.isCorrect && "bg-green-500 text-white hover:bg-green-600",
-                          isAnswered && !attempt?.isCorrect && "bg-red-500 text-white hover:bg-red-600",
-                          !isAnswered && "border bg-background hover:bg-muted"
-                        )}
-                        title={`Question ${index + 1}${isAnswered ? (attempt?.isCorrect ? " - Correct" : " - Incorrect") : ""}`}
-                      >
-                        {index + 1}
-                      </button>
-                    );
-                  })}
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Generate questions and send them here to start a quiz.
-              </p>
-            )}
-          </CardContent>
         </Card>
 
-        {activeSession && currentQuestion ? (
-          <Card className="overflow-hidden">
+        <div className="space-y-6">
+          <Card>
+            <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="h-6 w-6 text-primary" />
+                  <CardTitle className="text-xl font-semibold">Quiz Mode</CardTitle>
+                </div>
+                <CardDescription>
+                  Run through your generated questions with instant AI feedback and analytics.
+                </CardDescription>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setViewingHistory((prev) => !prev)}>
+                  <History className="mr-2 h-4 w-4" />
+                  {viewingHistory ? "Hide history" : "Show history"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowLoadDialog(true)}>
+                  <FolderOpen className="mr-2 h-4 w-4" />
+                  Load saved
+                </Button>
+                <Button variant="secondary" size="sm" onClick={startFromStaged} disabled={!stagedQuestions.length}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Load staged
+                </Button>
+                <Button variant="ghost" size="icon" onClick={resetCurrentSession} disabled={!activeSession}>
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <Progress value={progress} className="h-2 flex-1" />
+                  <Badge variant="outline">{Math.round(progress)}% complete</Badge>
+                </div>
+                {activeSession && activeSession.attempts.length > 0 && (
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3 text-green-600" />
+                      {activeSession.attempts.filter((attempt) => attempt.isCorrect).length} correct
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <Target className="h-3 w-3 text-red-600" />
+                      {activeSession.attempts.filter((attempt) => !attempt.isCorrect).length} incorrect
+                    </span>
+                  </div>
+                )}
+              </div>
+              {activeSession ? (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Session created {new Date(activeSession.createdAt).toLocaleString()} · {activeSession.questions.length} questions
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {activeSession.questions.map((question, index) => {
+                      const isAnswered = attemptsMap.has(question.id);
+                      const isCurrent = index === currentIndex;
+                      const attempt = attemptsMap.get(question.id);
+                      return (
+                        <button
+                          key={question.id}
+                          onClick={() => setCurrentIndex(index)}
+                          className={cn(
+                            "flex h-8 w-8 items-center justify-center rounded-md text-xs font-semibold transition",
+                            isCurrent && "ring-2 ring-primary ring-offset-2",
+                            isAnswered && attempt?.isCorrect && "bg-green-500 text-white hover:bg-green-600",
+                            isAnswered && !attempt?.isCorrect && "bg-red-500 text-white hover:bg-red-600",
+                            !isAnswered && "border bg-background hover:bg-muted"
+                          )}
+                          title={`Question ${index + 1}${isAnswered ? (attempt?.isCorrect ? " - Correct" : " - Incorrect") : ""}`}
+                        >
+                          {index + 1}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Generate questions and send them here to start a quiz.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {activeSession && currentQuestion ? (
+            <Card className="overflow-hidden">
             <CardHeader className="space-y-3">
               <div className="flex items-center justify-between text-xs uppercase tracking-wider text-muted-foreground">
                 <span>
@@ -568,7 +559,7 @@ export function QuizModeModule() {
         ) : (
           <AwaitingSession stagedCount={stagedQuestions.length} />
         )}
-      </div>
+        </div>
 
       <aside className="space-y-6">
         {viewingHistory && (
