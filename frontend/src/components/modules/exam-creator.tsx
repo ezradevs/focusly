@@ -215,7 +215,7 @@ export function ExamCreatorModule() {
           </CardHeader>
         </Card>
         <Card>
-          <CardContent>
+          <CardContent className="pt-6">
             <Form {...form}>
               <form className="grid gap-6 md:grid-cols-2" onSubmit={handleSubmit}>
               <div className="space-y-6">
