@@ -26,6 +26,7 @@ import { AuthDialog } from "@/components/auth-dialog";
 import { TutorChatbot } from "@/components/chatbot/tutor-chatbot";
 import { useAuthStore } from "@/store/auth";
 import { usePreferencesStore } from "@/store/preferences";
+import { useUIStore } from "@/store/ui";
 
 interface DashboardShellProps {
   activeModule?: ModuleId;
@@ -183,11 +184,12 @@ export function DashboardShell({
   children,
 }: DashboardShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [authOpen, setAuthOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const status = useAuthStore((state) => state.status);
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  const authDialogOpen = useUIStore((state) => state.authDialogOpen);
+  const setAuthDialogOpen = useUIStore((state) => state.setAuthDialogOpen);
 
   const isAuthenticated = status === "authenticated" && Boolean(user);
   const isLoadingAuth = status === "loading";
@@ -296,7 +298,7 @@ export function DashboardShell({
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button size="sm" className="gap-2" onClick={() => setAuthOpen(true)}>
+              <Button size="sm" className="gap-2" onClick={() => setAuthDialogOpen(true)}>
                 <LogIn className="h-4 w-4" />
                 Sign in
               </Button>
@@ -345,7 +347,7 @@ export function DashboardShell({
           </div>
         )}
       </div>
-      <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
+      <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
       <TutorChatbot />
     </TooltipProvider>
   );
