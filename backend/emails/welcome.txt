@@ -1,0 +1,57 @@
+🎓 Welcome to Focusly!
+
+Hi {{name}},
+
+Thank you for verifying your email! You now have full access to all of Focusly's AI-powered learning tools.
+
+We're excited to help you study smarter, not harder. Let's get started!
+
+Start Studying: https://focusly.one/workspace
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 Here's what you can do with Focusly:
+
+📝 Notes Summariser
+   Upload PDFs or paste text to get AI-powered summaries
+
+❓ Question Generator
+   Create MCQs, short answer, and extended response questions
+
+🎯 Quiz Mode
+   Test yourself with instant AI feedback on your answers
+
+🗂️ Flashcard Maker
+   Generate smart flashcards from your study materials
+
+📋 Exam Creator
+   Build practice exams with Band 6 sample answers
+
+📅 Revision Planner
+   Get personalized study schedules for your exams
+
+🌍 Language Practice
+   Learn languages with AI conversation, grammar, and vocabulary tools
+
+💻 NESA Software Engineering Exam
+   Practice with official NSW HSC-style software questions
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 Quick Tips:
+
+• All your generated content is automatically saved in your workspace
+• You can access your history and previous outputs anytime
+• Each module is designed to work together - try combining them for better results
+• Upload your class notes to the Notes Summariser, then generate questions from them!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Need help? Have questions? We're here for you!
+Reply to this email or contact us at support@focusly.one
+
+Happy studying! 🎉
+
+© {{year}} Focusly. All rights reserved.
+
+Unsubscribe from welcome emails: {{unsubscribe_url}}
