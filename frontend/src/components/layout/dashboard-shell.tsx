@@ -313,30 +313,34 @@ export function DashboardShell({
             sidebarCollapsed ? "md:grid-cols-[70px_1fr] pl-0 pr-4" : "md:grid-cols-[280px_1fr] px-4"
           )}>
             <div className={cn("hidden md:block relative", sidebarCollapsed && "px-0")}>
-              <div className="sticky top-24 flex flex-col h-[calc(100vh-7rem)]">
-                <Navigation
-                  activeModule={activeModule}
-                  onModuleChange={onModuleChange}
-                  isCollapsed={sidebarCollapsed}
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                  className={cn(
-                    "mt-2 gap-2 border shadow-sm",
-                    sidebarCollapsed && "w-full justify-center px-2"
-                  )}
-                >
-                  {sidebarCollapsed ? (
-                    <ChevronRight className="h-4 w-4" />
-                  ) : (
-                    <>
-                      <ChevronLeft className="h-4 w-4" />
-                      Collapse Navigation Bar
-                    </>
-                  )}
-                </Button>
+              <div className="sticky top-24 h-[calc(100vh-7rem)]">
+                <div className="flex h-full flex-col overflow-hidden">
+                  <div className="flex-1 overflow-y-auto pr-1">
+                    <Navigation
+                      activeModule={activeModule}
+                      onModuleChange={onModuleChange}
+                      isCollapsed={sidebarCollapsed}
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                    className={cn(
+                      "mt-2 gap-2 border shadow-sm",
+                      sidebarCollapsed && "w-full justify-center px-2"
+                    )}
+                  >
+                    {sidebarCollapsed ? (
+                      <ChevronRight className="h-4 w-4" />
+                    ) : (
+                      <>
+                        <ChevronLeft className="h-4 w-4" />
+                        Collapse Navigation Bar
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
             <div className="min-h-[calc(100vh-6rem)]">{children}</div>
