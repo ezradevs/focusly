@@ -1,11 +1,14 @@
 import type {
   AuthUser,
+  EssayCoachResponse,
   ExamResponse,
   FlashcardBuilderResponse,
+  MnemonicResponse,
   GeneratedQuestion,
   ModuleOutputRecord,
   PlannerResult,
   QuizFeedbackResponse,
+  RecallDrillResponse,
   StoredModuleType,
   SummaryResult,
   ChatRole,
@@ -138,6 +141,40 @@ export const focuslyApi = {
     studyDaysPerWeek: number;
   }) =>
     request<PlannerResult>("/api/planner/build", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  generateMnemonics: (payload: {
+    subject: string;
+    focusArea?: string | null;
+    keyIdeas: string;
+    preferredStyle: "acrostic" | "story" | "visual" | "chunking" | "rhythm";
+  }) =>
+    request<MnemonicResponse>("/api/memorisation/mnemonics", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  coachEssayMemorisation: (payload: {
+    subject: string;
+    essayTitle: string;
+    essayText: string;
+    rehearsalWindowDays: number;
+    goal?: string;
+  }) =>
+    request<EssayCoachResponse>("/api/memorisation/essay-coach", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  generateRecallDrills: (payload: {
+    subject: string;
+    topic: string;
+    facts: string[];
+    difficulty: "gentle" | "balanced" | "intense";
+  }) =>
+    request<RecallDrillResponse>("/api/memorisation/recall-drills", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
