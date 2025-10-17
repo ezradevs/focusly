@@ -213,3 +213,60 @@ export async function sendWelcomeEmail({
     throw error;
   }
 }
+
+interface SendPasswordResetEmailParams {
+  email: string;
+  name?: string;
+  resetToken: string;
+}
+
+export async function sendPasswordResetEmail({
+  email,
+  name,
+  resetToken,
+}: SendPasswordResetEmailParams) {
+  const resetUrl = `${process.env.CLIENT_ORIGIN || "http://localhost:3000"}/reset-password?token=${resetToken}`;
+  const firstName = name?.split(" ")[0] || "there";
+  const currentYear = new Date().getFullYear();
+
+  try {
+    // Load email templates
+    const htmlTemplate = fs.readFileSync(
+      path.join(__dirname, "../../emails/password-reset.html"),
+      "utf-8"
+    );
+    const textTemplate = fs.readFileSync(
+      path.join(__dirname, "../../emails/password-reset.txt"),
+      "utf-8"
+    );
+
+    // Replace placeholders
+    const html = htmlTemplate
+      .replace(/\{\{name\}\}/g, firstName)
+      .replace(/\{\{reset_url\}\}/g, resetUrl)
+      .replace(/\{\{year\}\}/g, String(currentYear));
+
+    const text = textTemplate
+      .replace(/\{\{name\}\}/g, firstName)
+      .replace(/\{\{reset_url\}\}/g, resetUrl)
+      .replace(/\{\{year\}\}/g, String(currentYear));
+
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM || "Focusly <noreply@focusly.one>",
+      to: email,
+      subject: "Reset Your Password - Focusly",
+      html,
+      text,
+    });
+
+    if (error) {
+      console.error("Failed to send password reset email:", error);
+      throw new Error("Failed to send password reset email");
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error("Error sending password reset email:", error);
+    throw error;
+  }
+}

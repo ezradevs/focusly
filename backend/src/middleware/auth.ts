@@ -50,6 +50,7 @@ export const attachUser: AsyncHandler = async (req, _res, next) => {
       id: true,
       email: true,
       name: true,
+      emailVerified: true,
       createdAt: true,
     },
   });

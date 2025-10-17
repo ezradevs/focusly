@@ -6,6 +6,8 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Lock, Mail, User } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
+import { toast } from "sonner";
+import { focuslyApi } from "@/lib/api";
 import {
   Dialog,
   DialogContent,
@@ -45,7 +47,10 @@ interface AuthDialogProps {
 }
 
 export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
-  const [mode, setMode] = React.useState<"login" | "signup">("login");
+  const [mode, setMode] = React.useState<"login" | "signup">("signup");
+  const [showForgotPassword, setShowForgotPassword] = React.useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = React.useState("");
+  const [isSendingReset, setIsSendingReset] = React.useState(false);
   const status = useAuthStore((state) => state.status);
   const errorMessage = useAuthStore((state) => state.error);
   const login = useAuthStore((state) => state.login);
@@ -101,6 +106,78 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
   const toggleMode = () => {
     setMode((prev) => (prev === "login" ? "signup" : "login"));
   };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotPasswordEmail || !forgotPasswordEmail.includes("@")) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    setIsSendingReset(true);
+    try {
+      await focuslyApi.requestPasswordReset(forgotPasswordEmail);
+      toast.success("Password reset link sent! Check your email.");
+      setShowForgotPassword(false);
+      setForgotPasswordEmail("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to send reset email");
+    } finally {
+      setIsSendingReset(false);
+    }
+  };
+
+  if (showForgotPassword) {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">Reset Your Password</DialogTitle>
+            <DialogDescription>
+              Enter your email address and we'll send you a link to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleForgotPassword} className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="reset-email" className="text-sm font-medium">
+                Email
+              </label>
+              <div className="flex items-center gap-2 rounded-md border px-3 py-2">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="reset-email"
+                  type="email"
+                  className="border-0 p-0 focus-visible:ring-0"
+                  placeholder="name@email.com"
+                  value={forgotPasswordEmail}
+                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                  required
+                  disabled={isSendingReset}
+                />
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full" disabled={isSendingReset}>
+              {isSendingReset && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Send Reset Link
+            </Button>
+          </form>
+
+          <div className="text-center text-sm text-muted-foreground">
+            Remember your password?{" "}
+            <button
+              type="button"
+              onClick={() => setShowForgotPassword(false)}
+              className="font-medium text-primary hover:underline"
+            >
+              Back to sign in
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -176,7 +253,18 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Password</FormLabel>
+                    {mode === "login" && (
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotPassword(true)}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Forgot password?
+                      </button>
+                    )}
+                  </div>
                   <FormControl>
                     <div className="flex items-center gap-2 rounded-md border px-3 py-2">
                       <Lock className="h-4 w-4 text-muted-foreground" />

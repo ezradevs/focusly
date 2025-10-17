@@ -3,7 +3,7 @@ import type { User } from "@prisma/client";
 declare global {
   namespace Express {
     interface Request {
-      currentUser?: Pick<User, "id" | "email" | "name" | "createdAt">;
+      currentUser?: Pick<User, "id" | "email" | "name" | "emailVerified" | "createdAt">;
     }
   }
 }

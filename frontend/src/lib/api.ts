@@ -165,6 +165,18 @@ export const focuslyApi = {
       body: JSON.stringify({ token }),
     }),
 
+  requestPasswordReset: (email: string) =>
+    request<{ success: boolean; message: string }>("/api/auth/password/reset-request", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
+  confirmPasswordReset: (payload: { token: string; newPassword: string }) =>
+    request<{ success: boolean; message: string }>("/api/auth/password/reset-confirm", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
   currentUser: () => request<AuthResponse>("/api/auth/me"),
 
   listOutputs: (params: { module?: StoredModuleType; limit?: number; search?: string } = {}) => {

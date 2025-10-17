@@ -11,7 +11,7 @@ import { ensureDatabase } from "./lib/bootstrap";
 import { attachUser, requireAuth, withErrorBoundary } from "./middleware/auth";
 import { AUTH_COOKIE_NAME, createAuthToken } from "./utils/jwt";
 import { runChatCompletion } from "./services/openai";
-import { sendVerificationEmail, sendWelcomeEmail } from "./services/email";
+import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail } from "./services/email";
 import crypto from "crypto";
 
 const app = express();
@@ -314,12 +314,14 @@ function formatUser(user: {
   id: string;
   email: string;
   name: string | null;
+  emailVerified: boolean;
   createdAt: Date;
 }) {
   return {
     id: user.id,
     email: user.email,
     name: user.name,
+    emailVerified: user.emailVerified,
     createdAt: user.createdAt,
   };
 }
@@ -447,6 +449,84 @@ app.post(
     }
 
     res.json({ success: true, message: "Email verified successfully!" });
+  })
+);
+
+// Password Reset Request
+app.post(
+  "/api/auth/password/reset-request",
+  withErrorBoundary(async (req, res) => {
+    const { email } = z.object({ email: z.string().email() }).parse(req.body);
+
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    // Always return success to prevent email enumeration
+    if (!user) {
+      return res.json({ success: true, message: "If that email exists, a reset link has been sent." });
+    }
+
+    // Generate reset token (1 hour expiry)
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const tokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        verificationToken: resetToken,
+        tokenExpiresAt,
+      },
+    });
+
+    // Send password reset email
+    try {
+      await sendPasswordResetEmail({
+        email: user.email,
+        ...(user.name ? { name: user.name } : {}),
+        resetToken,
+      });
+    } catch (error) {
+      console.error("Failed to send password reset email:", error);
+      // Continue even if email fails
+    }
+
+    res.json({ success: true, message: "If that email exists, a reset link has been sent." });
+  })
+);
+
+// Password Reset Confirm
+app.post(
+  "/api/auth/password/reset-confirm",
+  withErrorBoundary(async (req, res) => {
+    const { token, newPassword } = z.object({
+      token: z.string(),
+      newPassword: z.string().min(8, "Password must be at least 8 characters"),
+    }).parse(req.body);
+
+    const user = await prisma.user.findUnique({
+      where: { verificationToken: token },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: "Invalid or expired reset token." });
+    }
+
+    // Check if token has expired
+    if (user.tokenExpiresAt && user.tokenExpiresAt < new Date()) {
+      return res.status(400).json({ error: "Reset token has expired. Please request a new one." });
+    }
+
+    // Update password and clear token
+    const newPasswordHash = await bcrypt.hash(newPassword, 12);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash: newPasswordHash,
+        verificationToken: null,
+        tokenExpiresAt: null,
+      },
+    });
+
+    res.json({ success: true, message: "Password reset successfully!" });
   })
 );
 
