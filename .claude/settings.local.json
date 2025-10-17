@@ -12,7 +12,8 @@
       "Bash(git commit:*)",
       "Bash(npm run build:*)",
       "Bash(for file in revision-planner.tsx language-practice.tsx)",
-      "Bash(do echo \"=== $file ===\" head -40 \"/Users/glover-sanders.ezra/Desktop/Focusly/frontend/src/components/modules/$file\")"
+      "Bash(do echo \"=== $file ===\" head -40 \"/Users/glover-sanders.ezra/Desktop/Focusly/frontend/src/components/modules/$file\")",
+      "Bash(tree -L 2 -I 'node_modules' /Users/glover-sanders.ezra/Desktop/focusly)"
     ],
     "deny": [],
     "ask": []
