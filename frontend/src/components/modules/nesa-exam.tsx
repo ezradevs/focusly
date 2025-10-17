@@ -17,6 +17,7 @@ import type { NESAExam, NESAQuestion, NESAModuleName, ModuleOutputRecord } from 
 import { PythonEditor } from "@/components/nesa/python-editor";
 import { SQLEditor } from "@/components/nesa/sql-editor";
 import { DiagramCanvas } from "@/components/nesa/diagram-canvas";
+import { MatchingQuestion } from "@/components/nesa/matching-question";
 import { format } from "date-fns";
 
 const formSchema = z.object({
@@ -181,30 +182,27 @@ export function NESAExamModule() {
         );
 
       case "matching":
+        // Parse existing answer if it exists
+        const existingMatches: Record<number, number> = {};
+        if (userAnswers[question.id]) {
+          try {
+            const parsed = JSON.parse(userAnswers[question.id]);
+            Object.assign(existingMatches, parsed);
+          } catch {
+            // If not JSON, ignore
+          }
+        }
+
         return (
           <div className="space-y-4">
             <div className="text-lg font-medium mb-4">{question.prompt}</div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                {question.matchingPairs?.map((pair, idx) => (
-                  <div key={idx} className="p-3 border rounded-lg bg-muted/30">
-                    {pair.left}
-                  </div>
-                ))}
-              </div>
-              <div className="space-y-2">
-                {question.matchingPairs?.map((pair, idx) => (
-                  <div key={idx} className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-950">
-                    {pair.right}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <textarea
-              className="w-full min-h-[100px] p-3 border rounded-md"
-              placeholder="Write your matches here (e.g., 1-A, 2-C, 3-B)"
-              value={userAnswers[question.id] || ""}
-              onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+            <MatchingQuestion
+              pairs={question.matchingPairs || []}
+              initialMatches={existingMatches}
+              onMatchChange={(matches) => {
+                // Store matches as JSON string
+                handleAnswerChange(question.id, JSON.stringify(matches));
+              }}
             />
           </div>
         );
