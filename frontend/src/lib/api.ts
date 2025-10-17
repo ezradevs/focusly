@@ -159,6 +159,12 @@ export const focuslyApi = {
       method: "POST",
     }),
 
+  verifyEmail: (token: string) =>
+    request<{ success: boolean; message: string }>("/api/auth/verify", {
+      method: "POST",
+      body: JSON.stringify({ token }),
+    }),
+
   currentUser: () => request<AuthResponse>("/api/auth/me"),
 
   listOutputs: (params: { module?: StoredModuleType; limit?: number; search?: string } = {}) => {

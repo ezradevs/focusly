@@ -11,6 +11,8 @@ import { ensureDatabase } from "./lib/bootstrap";
 import { attachUser, requireAuth, withErrorBoundary } from "./middleware/auth";
 import { AUTH_COOKIE_NAME, createAuthToken } from "./utils/jwt";
 import { runChatCompletion } from "./services/openai";
+import { sendVerificationEmail } from "./services/email";
+import crypto from "crypto";
 
 const app = express();
 
@@ -338,18 +340,40 @@ app.post(
       return res.status(409).json({ error: "Email is already registered." });
     }
 
+    // Generate verification token
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+
     const passwordHash = await bcrypt.hash(payload.password, 12);
     const user = await prisma.user.create({
       data: {
         email: payload.email,
         passwordHash,
         name: payload.name ?? null,
+        emailVerified: false,
+        verificationToken,
+        tokenExpiresAt,
       },
     });
 
+    // Send verification email
+    try {
+      await sendVerificationEmail({
+        email: user.email,
+        ...(user.name ? { name: user.name } : {}),
+        verificationToken,
+      });
+    } catch (error) {
+      console.error("Failed to send verification email:", error);
+      // Continue with signup even if email fails
+    }
+
     const token = createAuthToken({ sub: user.id, email: user.email, name: user.name });
     res.cookie(AUTH_COOKIE_NAME, token, cookieOptions);
-    res.status(201).json({ user: formatUser(user) });
+    res.status(201).json({
+      user: formatUser(user),
+      message: "Account created! Please check your email to verify your account."
+    });
   })
 );
 
@@ -380,6 +404,38 @@ app.post(
   withErrorBoundary(async (_req, res) => {
     res.clearCookie(AUTH_COOKIE_NAME, { ...cookieOptions, maxAge: 0 });
     res.json({ success: true });
+  })
+);
+
+app.post(
+  "/api/auth/verify",
+  withErrorBoundary(async (req, res) => {
+    const { token } = z.object({ token: z.string() }).parse(req.body);
+
+    const user = await prisma.user.findUnique({
+      where: { verificationToken: token },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: "Invalid or expired verification token." });
+    }
+
+    // Check if token has expired
+    if (user.tokenExpiresAt && user.tokenExpiresAt < new Date()) {
+      return res.status(400).json({ error: "Verification token has expired. Please request a new one." });
+    }
+
+    // Update user to mark as verified
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerified: true,
+        verificationToken: null,
+        tokenExpiresAt: null,
+      },
+    });
+
+    res.json({ success: true, message: "Email verified successfully!" });
   })
 );
 
