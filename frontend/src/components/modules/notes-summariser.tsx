@@ -213,7 +213,7 @@ export function NotesSummariserModule() {
         transition={{ duration: 0.25 }}
         className="space-y-6"
       >
-        <Card className="border-primary/15 bg-gradient-to-br from-sky-500/15 via-transparent to-blue-500/15">
+        <Card className="border-primary/10 bg-gradient-to-br from-sky-400/20 via-sky-200/20 to-blue-500/20">
           <CardHeader className="space-y-3">
             <div className="flex items-center gap-2">
               <NotebookPen className="h-6 w-6 text-primary" />
@@ -231,18 +231,9 @@ export function NotesSummariserModule() {
         </Card>
 
         <Card>
-          <CardHeader className="space-y-1">
-            <div className="flex items-center gap-2">
-              <NotebookPen className="h-6 w-6 text-primary" />
-              <CardTitle className="text-xl font-semibold">Notes Summariser</CardTitle>
-            </div>
-            <CardDescription>
-              Paste or upload your notes to generate a concise study pack with key points and terminology.
-            </CardDescription>
-          </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form className="space-y-6" onSubmit={onSubmit}>
+          <CardContent className="pt-6">
+            <Form {...form}>
+              <form className="space-y-6" onSubmit={onSubmit}>
               <div className="grid gap-4 md:grid-cols-2">
                 <FormField
                   control={form.control}

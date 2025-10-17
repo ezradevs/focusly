@@ -82,18 +82,18 @@ export const MODULES: ModuleMeta[] = [
     accent: "from-cyan-400 to-blue-600",
   },
   {
-    id: "nesa",
-    label: "NESA Software Exam",
-    description: "Generate NSW HSC Software Engineering practice exams with interactive coding.",
-    icon: Code2,
-    accent: "from-indigo-400 to-purple-600",
-  },
-  {
     id: "memorisation",
     label: "Memorisation Studio",
     description: "Craft mnemonics, rehearse essays, and drill active recall.",
     icon: BrainCircuit,
     accent: "from-fuchsia-400 to-rose-600",
+  },
+  {
+    id: "nesa",
+    label: "NESA Software Exam",
+    description: "Generate NSW HSC Software Engineering practice exams with interactive coding.",
+    icon: Code2,
+    accent: "from-indigo-400 to-purple-600",
   },
 ];
 

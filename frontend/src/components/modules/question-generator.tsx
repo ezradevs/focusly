@@ -167,7 +167,7 @@ export function QuestionGeneratorModule() {
         transition={{ duration: 0.25 }}
         className="space-y-6"
       >
-        <Card className="border-primary/15 bg-gradient-to-br from-amber-400/15 via-transparent to-lime-500/15">
+        <Card className="border-primary/10 bg-gradient-to-br from-amber-300/20 via-orange-200/20 to-orange-500/20">
           <CardHeader className="space-y-3">
             <div className="flex items-center gap-2">
               <ClipboardList className="h-6 w-6 text-primary" />
@@ -183,18 +183,8 @@ export function QuestionGeneratorModule() {
             </div>
           </CardHeader>
         </Card>
-
         <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <ClipboardList className="h-6 w-6 text-primary" />
-              <CardTitle className="text-xl font-semibold">Question Generator</CardTitle>
-            </div>
-            <CardDescription>
-              Produce targeted questions for revision, class discussion, or self-testing. Supports MCQ, short answer, and extended responses.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <Form {...form}>
               <form className="space-y-6" onSubmit={onSubmit}>
               <div className="grid gap-4 md:grid-cols-2">

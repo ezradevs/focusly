@@ -198,7 +198,7 @@ export function ExamCreatorModule() {
         transition={{ duration: 0.25 }}
         className="space-y-6"
       >
-        <Card className="border-primary/15 bg-gradient-to-br from-orange-400/15 via-transparent to-rose-500/15">
+        <Card className="border-primary/10 bg-gradient-to-br from-orange-400/20 via-rose-200/20 to-rose-500/20">
           <CardHeader className="space-y-3">
             <div className="flex items-center gap-2">
               <BookOpenCheck className="h-6 w-6 text-primary" />
@@ -214,18 +214,8 @@ export function ExamCreatorModule() {
             </div>
           </CardHeader>
         </Card>
-
         <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <BookOpenCheck className="h-6 w-6 text-primary" />
-              <CardTitle className="text-xl font-semibold">Exam-Style Creator</CardTitle>
-            </div>
-            <CardDescription>
-              Generate realistic extended-response questions with high-band exemplars and targeted evaluation.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <Form {...form}>
               <form className="grid gap-6 md:grid-cols-2" onSubmit={handleSubmit}>
               <div className="space-y-6">

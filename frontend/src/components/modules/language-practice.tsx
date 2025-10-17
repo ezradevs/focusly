@@ -272,7 +272,7 @@ export function LanguagePracticeModule() {
         transition={{ duration: 0.25 }}
         className="space-y-6"
       >
-        <Card className="border-primary/15 bg-gradient-to-br from-violet-500/15 via-transparent to-sky-500/15">
+        <Card className="border-primary/10 bg-gradient-to-br from-violet-500/20 via-sky-200/20 to-sky-500/20">
           <CardHeader className="space-y-3">
             <div className="flex items-center gap-2">
               <Languages className="h-6 w-6 text-primary" />
@@ -288,18 +288,8 @@ export function LanguagePracticeModule() {
             </div>
           </CardHeader>
         </Card>
-
         <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Languages className="h-6 w-6 text-primary" />
-              <CardTitle className="text-xl font-semibold">Language Practice Hub</CardTitle>
-            </div>
-            <CardDescription>
-              Practice vocabulary, grammar, conversation, writing, and translation
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <Form {...form}>
               <form onSubmit={onSubmit} className="space-y-6">
               {/* Language and Level Selection */}
