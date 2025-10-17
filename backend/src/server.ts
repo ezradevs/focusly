@@ -301,7 +301,6 @@ type PersistArgs = {
 };
 
 async function persistModuleOutput({ module, subject, label, input, output, userId }: PersistArgs) {
-  if (!userId) return;
   try {
     await prisma.moduleOutput.create({
       data: {
@@ -310,7 +309,7 @@ async function persistModuleOutput({ module, subject, label, input, output, user
         label: label ?? null,
         input,
         output,
-        userId,
+        userId: userId ?? null,
       },
     });
   } catch (error) {
@@ -1613,7 +1612,7 @@ IMPORTANT:
       label: `NESA HSC Exam • ${modulesText}`,
       input: payload as JsonValue,
       output: parsed as JsonValue,
-      userId: req.currentUser?.id ?? null,
+      userId: null, // NESA exams are always public/shared across all users
     });
 
     res.json(parsed);
@@ -1623,10 +1622,10 @@ IMPORTANT:
 app.get(
   "/api/nesa/exams",
   withErrorBoundary(async (req, res) => {
+    // Fetch all NESA exams - they are public/shared across all users
     const exams = await prisma.moduleOutput.findMany({
       where: {
         module: ModuleType.NESA_SOFTWARE_EXAM,
-        ...(req.currentUser ? { userId: req.currentUser.id } : {}),
       },
       orderBy: { createdAt: "desc" },
     });

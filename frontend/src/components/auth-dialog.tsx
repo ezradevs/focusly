@@ -112,6 +112,15 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
       if (mode === "login") {
         const loginValues = values as LoginValues;
         await login({ email: loginValues.email, password: loginValues.password });
+
+        // Show welcome message after successful login
+        const currentUser = useAuthStore.getState().user;
+        const welcomeMessage = currentUser?.name
+          ? `Welcome back, ${currentUser.name.split(" ")[0]}!`
+          : "Welcome back to Focusly!";
+        toast.success(welcomeMessage, {
+          duration: 4000,
+        });
       } else {
         const signupValues = values as SignupValues;
         await signup({
