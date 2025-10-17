@@ -274,6 +274,81 @@ const plannerResponseSchema = z.object({
   successTips: z.array(z.string()).optional(),
 });
 
+const mnemonicRequestSchema = z.object({
+  subject: z.string().min(1),
+  keyIdeas: z.string().min(10, "Share at least a sentence of key ideas"),
+  preferredStyle: z
+    .enum(["acrostic", "story", "visual", "chunking", "rhythm"])
+    .default("acrostic"),
+  focusArea: z.string().optional(),
+});
+
+const mnemonicResponseSchema = z.object({
+  mnemonics: z.array(
+    z.object({
+      title: z.string(),
+      type: z.string(),
+      mnemonic: z.string(),
+      explanation: z.string(),
+      usageTips: z.array(z.string()).optional(),
+    })
+  ),
+  recallStrategies: z.array(z.string()).optional(),
+  spacedRepetitionAdvice: z.array(z.string()).optional(),
+});
+
+const essayCoachSchema = z.object({
+  subject: z.string().min(1),
+  essayTitle: z.string().min(3),
+  essayText: z
+    .string()
+    .min(120, "Provide at least a paragraph so we can coach memorisation effectively."),
+  rehearsalWindowDays: z.coerce.number().min(3).max(42).default(14),
+  goal: z.string().optional(),
+});
+
+const essayCoachResponseSchema = z.object({
+  sections: z.array(
+    z.object({
+      heading: z.string(),
+      summary: z.string(),
+      keyQuotes: z.array(z.string()).optional(),
+      recallCues: z.array(z.string()),
+      checkUnderstanding: z.array(z.string()).optional(),
+    })
+  ),
+  rehearsalPlan: z.array(
+    z.object({
+      day: z.string(),
+      focus: z.string(),
+      activities: z.array(z.string()),
+    })
+  ),
+  activeRecallPrompts: z.array(z.string()).optional(),
+  examTips: z.array(z.string()).optional(),
+});
+
+const recallDrillSchema = z.object({
+  subject: z.string().min(1),
+  topic: z.string().min(1),
+  facts: z.array(z.string()).min(3, "List at least three facts to drill."),
+  difficulty: z.enum(["gentle", "balanced", "intense"]).default("balanced"),
+});
+
+const recallDrillResponseSchema = z.object({
+  drills: z.array(
+    z.object({
+      prompt: z.string(),
+      idealAnswer: z.string(),
+      hint: z.string().optional(),
+      difficulty: z.string().optional(),
+      followUp: z.string().optional(),
+    })
+  ),
+  confidenceChecks: z.array(z.string()).optional(),
+  spacingReminders: z.array(z.string()).optional(),
+});
+
 const tutorMessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
   content: z.string(),
@@ -1041,6 +1116,135 @@ Return JSON:
       label: `${payload.subjects.join(", ")} planner`,
       input: payload as JsonValue,
       output: parsed as JsonValue,
+      userId: req.currentUser?.id ?? null,
+    });
+
+    res.json(parsed);
+  })
+);
+
+app.post(
+  "/api/memorisation/mnemonics",
+  withErrorBoundary(async (req, res) => {
+    const payload = mnemonicRequestSchema.parse(req.body);
+
+    const result = await runChatCompletion({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are Focusly's memorisation coach. Design memorable devices tailored to the student's preferences. Always respond with the requested JSON schema.",
+        },
+        {
+          role: "user",
+          content: `Subject: ${payload.subject}\nFocus area: ${payload.focusArea ?? "General"}\nPreferred style: ${payload.preferredStyle}\nKey ideas to remember:\n${payload.keyIdeas}\n\nReturn JSON shaped as {"mnemonics": [{"title": string, "type": string, "mnemonic": string, "explanation": string, "usageTips": [string]}], "recallStrategies": [string], "spacedRepetitionAdvice": [string]}`,
+        },
+      ],
+    });
+
+    const parsed = mnemonicResponseSchema.parse(result);
+
+    await persistModuleOutput({
+      module: ModuleType.MEMORISATION,
+      subject: payload.subject,
+      label: `${payload.subject} • Memorisation mnemonics`,
+      input: payload as JsonValue,
+      output: {
+        tool: "mnemonic",
+        meta: {
+          preferredStyle: payload.preferredStyle,
+          focusArea: payload.focusArea ?? null,
+        },
+        result: parsed,
+      } as JsonValue,
+      userId: req.currentUser?.id ?? null,
+    });
+
+    res.json(parsed);
+  })
+);
+
+app.post(
+  "/api/memorisation/essay-coach",
+  withErrorBoundary(async (req, res) => {
+    const payload = essayCoachSchema.parse(req.body);
+
+    const result = await runChatCompletion({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are Focusly's essay memorisation mentor. Break essays into memorable chunks, generate cues, and propose rehearsal schedules that blend spaced repetition and active recall. Always output valid JSON matching the schema.",
+        },
+        {
+          role: "user",
+          content: `Subject: ${payload.subject}\nEssay title: ${payload.essayTitle}\nStudy goal: ${payload.goal ?? "Exam mastery"}\nRehearsal window (days): ${payload.rehearsalWindowDays}\nEssay text:\n${payload.essayText}\n\nRespond with JSON shaped as {"sections": [{"heading": string, "summary": string, "keyQuotes": [string], "recallCues": [string], "checkUnderstanding": [string]}], "rehearsalPlan": [{"day": string, "focus": string, "activities": [string]}], "activeRecallPrompts": [string], "examTips": [string]}`,
+        },
+      ],
+      maxTokens: 1200,
+    });
+
+    const parsed = essayCoachResponseSchema.parse(result);
+
+    await persistModuleOutput({
+      module: ModuleType.MEMORISATION,
+      subject: payload.subject,
+      label: `${payload.subject} • Essay coach`,
+      input: payload as JsonValue,
+      output: {
+        tool: "essay-coach",
+        meta: {
+          rehearsalWindowDays: payload.rehearsalWindowDays,
+          goal: payload.goal ?? null,
+          essayTitle: payload.essayTitle,
+        },
+        result: parsed,
+      } as JsonValue,
+      userId: req.currentUser?.id ?? null,
+    });
+
+    res.json(parsed);
+  })
+);
+
+app.post(
+  "/api/memorisation/recall-drills",
+  withErrorBoundary(async (req, res) => {
+    const payload = recallDrillSchema.parse(req.body);
+
+    const factsList = payload.facts
+      .map((fact, index) => `${index + 1}. ${fact}`)
+      .join("\n");
+
+    const result = await runChatCompletion({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are Focusly's active recall drill designer. Create escalating prompts with expected answers, hints, and follow-up reflections to reinforce retention. Always return valid JSON following the requested schema.",
+        },
+        {
+          role: "user",
+          content: `Subject: ${payload.subject}\nTopic: ${payload.topic}\nDifficulty preference: ${payload.difficulty}\nFacts to retain:\n${factsList}\n\nReturn JSON shaped as {"drills": [{"prompt": string, "idealAnswer": string, "hint": string, "difficulty": string, "followUp": string}], "confidenceChecks": [string], "spacingReminders": [string]}`,
+        },
+      ],
+    });
+
+    const parsed = recallDrillResponseSchema.parse(result);
+
+    await persistModuleOutput({
+      module: ModuleType.MEMORISATION,
+      subject: payload.subject,
+      label: `${payload.subject} • Recall drills`,
+      input: payload as JsonValue,
+      output: {
+        tool: "recall-drills",
+        meta: {
+          topic: payload.topic,
+          difficulty: payload.difficulty,
+        },
+        result: parsed,
+      } as JsonValue,
       userId: req.currentUser?.id ?? null,
     });
 

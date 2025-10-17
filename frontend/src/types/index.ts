@@ -228,7 +228,84 @@ export type StoredModuleType =
   | "EXAM_PACK"
   | "REVISION_PLAN"
   | "LANGUAGE_PRACTICE"
-  | "NESA_SOFTWARE_EXAM";
+  | "NESA_SOFTWARE_EXAM"
+  | "MEMORISATION";
+
+export type MemorisationTool = "mnemonic" | "essay-coach" | "recall-drills";
+
+export interface MnemonicIdea {
+  title: string;
+  type: string;
+  mnemonic: string;
+  explanation: string;
+  usageTips?: string[];
+}
+
+export interface MnemonicResponse {
+  mnemonics: MnemonicIdea[];
+  recallStrategies?: string[];
+  spacedRepetitionAdvice?: string[];
+}
+
+export interface EssaySectionPlan {
+  heading: string;
+  summary: string;
+  keyQuotes?: string[];
+  recallCues: string[];
+  checkUnderstanding?: string[];
+}
+
+export interface EssayCoachResponse {
+  sections: EssaySectionPlan[];
+  rehearsalPlan: Array<{
+    day: string;
+    focus: string;
+    activities: string[];
+  }>;
+  activeRecallPrompts?: string[];
+  examTips?: string[];
+}
+
+export interface RecallDrillItem {
+  prompt: string;
+  idealAnswer: string;
+  hint?: string;
+  difficulty?: string;
+  followUp?: string;
+}
+
+export interface RecallDrillResponse {
+  drills: RecallDrillItem[];
+  confidenceChecks?: string[];
+  spacingReminders?: string[];
+}
+
+export type MemorisationResult =
+  | {
+      tool: "mnemonic";
+      meta?: {
+        preferredStyle?: string | null;
+        focusArea?: string | null;
+      };
+      result: MnemonicResponse;
+    }
+  | {
+      tool: "essay-coach";
+      meta?: {
+        rehearsalWindowDays?: number;
+        goal?: string | null;
+        essayTitle?: string;
+      };
+      result: EssayCoachResponse;
+    }
+  | {
+      tool: "recall-drills";
+      meta?: {
+        topic?: string;
+        difficulty?: string;
+      };
+      result: RecallDrillResponse;
+    };
 
 export interface ModuleOutputRecord {
   id: string;

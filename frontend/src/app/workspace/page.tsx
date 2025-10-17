@@ -13,6 +13,7 @@ import { ExamCreatorModule } from "@/components/modules/exam-creator";
 import { RevisionPlannerModule } from "@/components/modules/revision-planner";
 import { LanguagePracticeModule } from "@/components/modules/language-practice";
 import { NESAExamModule } from "@/components/modules/nesa-exam";
+import { MemorisationModule } from "@/components/modules/memorisation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { MailWarning } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -98,6 +99,8 @@ export default function WorkspacePage() {
         return <LanguagePracticeModule key="language" />;
       case "nesa":
         return <NESAExamModule key="nesa" />;
+      case "memorisation":
+        return <MemorisationModule key="memorisation" />;
       default:
         return <NotesSummariserModule key="notes" />;
     }

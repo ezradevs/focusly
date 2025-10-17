@@ -22,6 +22,7 @@ enum ModuleType {
   REVISION_PLAN
   LANGUAGE_PRACTICE
   NESA_SOFTWARE_EXAM
+  MEMORISATION
 }
 
 model User {

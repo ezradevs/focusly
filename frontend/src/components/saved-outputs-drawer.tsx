@@ -42,7 +42,9 @@ import {
   FlashcardDeckViewer,
   ExamPackViewer,
   RevisionPlanViewer,
+  MemorisationViewer,
 } from "@/components/workspace-viewers";
+import type { MemorisationResult } from "@/types";
 import { formatSubject } from "@/lib/utils";
 
 interface SavedOutputsDrawerProps {
@@ -58,6 +60,7 @@ const moduleFilterOptions: Array<{ label: string; value: StoredModuleType | "all
   { label: "Flashcard Decks", value: "FLASHCARD_DECK" },
   { label: "Exam Packs", value: "EXAM_PACK" },
   { label: "Revision Plans", value: "REVISION_PLAN" },
+  { label: "Memorisation Studio", value: "MEMORISATION" },
 ];
 
 const moduleMetaById = new Map(MODULES.map((module) => [module.id, module]));
@@ -184,6 +187,10 @@ export function SavedOutputsDrawer({ open, onOpenChange }: SavedOutputsDrawerPro
         case "REVISION_PLAN":
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           return <RevisionPlanViewer data={output.output as any} />;
+        case "MEMORISATION":
+          return (
+            <MemorisationViewer data={output.output as MemorisationResult} />
+          );
         default:
           return (
             <div className="rounded-lg border bg-muted/20 p-4">
