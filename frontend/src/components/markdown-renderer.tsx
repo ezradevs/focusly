@@ -1,5 +1,6 @@
 "use client";
 
+import type React from "react";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -32,16 +33,28 @@ const components: Components = {
     />
   ),
   // Inline code with better styling
-  code: ({ inline, ...props }: { inline?: boolean }) => {
+  code: (props) => {
+    const { inline, className, children, ...rest } = props as {
+      inline?: boolean;
+      className?: string;
+      children?: React.ReactNode;
+    };
+
     if (inline) {
       return (
         <code
           className="rounded bg-muted px-1.5 py-0.5 font-mono text-sm text-foreground"
-          {...props}
-        />
+          {...rest}
+        >
+          {children}
+        </code>
       );
     }
-    return <code {...props} />;
+    return (
+      <code className={className} {...rest}>
+        {children}
+      </code>
+    );
   },
   // Links with security attributes
   a: ({ ...props }) => (
