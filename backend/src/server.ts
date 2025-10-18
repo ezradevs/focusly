@@ -1,5 +1,6 @@
 import cors from "cors";
 import express, { type CookieOptions } from "express";
+import type { PathParams } from "express-serve-static-core";
 import cookieParser from "cookie-parser";
 import bcrypt from "bcryptjs";
 import { ModuleType, Prisma } from "@prisma/client";
@@ -2048,8 +2049,17 @@ IMPORTANT:
   })
 );
 
-app.get(
+const nesaExamCollectionPaths: PathParams = [
   "/api/nesa/exams",
+  "/nesa/exams",
+];
+const nesaExamItemPaths: PathParams = [
+  "/api/nesa/exams/:id",
+  "/nesa/exams/:id",
+];
+
+app.get(
+  nesaExamCollectionPaths,
   withErrorBoundary(async (req, res) => {
     // Fetch all NESA exams - they are public/shared across all users
     const exams = await prisma.moduleOutput.findMany({
@@ -2080,7 +2090,7 @@ app.get(
 );
 
 app.put(
-  "/api/nesa/exams/:id",
+  nesaExamItemPaths,
   requireAuth,
   withErrorBoundary(async (req, res) => {
     const { id } = outputIdParamsSchema.parse(req.params);
@@ -2125,7 +2135,7 @@ app.put(
 );
 
 app.delete(
-  "/api/nesa/exams/:id",
+  nesaExamItemPaths,
   requireAuth,
   withErrorBoundary(async (req, res) => {
     const normalizedName = req.currentUser?.name?.trim().toLowerCase();
