@@ -137,6 +137,10 @@ const outputUpdateSchema = z.object({
   label: z.string().min(1).max(120),
 });
 
+const nesaAttemptUpdateSchema = z.object({
+  selfMarkedScores: z.record(z.string(), z.number()),
+});
+
 const summaryRequestSchema = z.object({
   subject: z.string().min(1),
   tone: z.enum(["concise", "exam-focus"]).default("concise"),
@@ -446,7 +450,7 @@ async function persistModuleOutput({
   createdByName,
 }: PersistArgs) {
   try {
-    await prisma.moduleOutput.create({
+    const created = await prisma.moduleOutput.create({
       data: {
         module,
         subject: subject ?? null,
@@ -457,8 +461,10 @@ async function persistModuleOutput({
         createdByName: createdByName ?? null,
       },
     });
+    return created;
   } catch (error) {
     console.error("[moduleOutput.save]", error);
+    return null;
   }
 }
 
@@ -1796,6 +1802,16 @@ const nesaExamResponseSchema = z.object({
   }),
 });
 
+const nesaMarkingRequestSchema = z.object({
+  examTitle: z.string(),
+  examRecordId: z.string().optional(),
+  questions: z.array(nesaQuestionSchema),
+  userAnswers: z.array(z.object({
+    questionId: z.string(),
+    answer: z.string(),
+  })),
+});
+
 app.post(
   "/api/nesa/generate",
   requireAuth,
@@ -2135,9 +2151,19 @@ app.get(
   nesaExamCollectionPaths,
   withErrorBoundary(async (req, res) => {
     // Fetch all NESA exams - they are public/shared across all users
+    // Exclude marked attempts and in-progress records (internal tracking only)
     const exams = await prisma.moduleOutput.findMany({
       where: {
         module: ModuleType.NESA_SOFTWARE_EXAM,
+        OR: [
+          { label: null },
+          {
+            AND: [
+              { label: { not: { contains: "Marked Attempt" } } },
+              { label: { not: { contains: "In Progress" } } }
+            ]
+          }
+        ]
       },
       orderBy: { createdAt: "desc" },
       include: {
@@ -2235,6 +2261,675 @@ app.delete(
     }
 
     res.json({ success: true });
+  })
+);
+
+const nesaAttemptsPaths: PathParams = [
+  "/api/nesa/attempts",
+  "/nesa/attempts",
+];
+
+app.get(
+  nesaAttemptsPaths,
+  requireAuth,
+  withErrorBoundary(async (req, res) => {
+    // Fetch user's marked attempts only
+    if (!req.currentUser?.id) {
+      res.json({ attempts: [] });
+      return;
+    }
+
+    const attempts = await prisma.moduleOutput.findMany({
+      where: {
+        module: ModuleType.NESA_SOFTWARE_EXAM,
+        userId: req.currentUser.id,
+        label: { contains: "Marked Attempt" }
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.json({ attempts });
+  })
+);
+
+const nesaAttemptItemPaths: PathParams = [
+  "/api/nesa/attempts/:id",
+  "/nesa/attempts/:id",
+];
+
+app.patch(
+  nesaAttemptItemPaths,
+  requireAuth,
+  withErrorBoundary(async (req, res) => {
+    if (!req.currentUser?.id) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const { id } = outputIdParamsSchema.parse(req.params);
+    const { selfMarkedScores } = nesaAttemptUpdateSchema.parse(req.body);
+
+    // Find the attempt
+    const attempt = await prisma.moduleOutput.findUnique({
+      where: { id }
+    });
+
+    if (!attempt || attempt.userId !== req.currentUser.id) {
+      res.status(404).json({ error: "Attempt not found" });
+      return;
+    }
+
+    // Update the output with self-marked scores
+    const currentOutput = attempt.output as any;
+    const updatedMarks = (currentOutput.marks || []).map((mark: any) => {
+      if (selfMarkedScores[mark.questionId] !== undefined) {
+        return { ...mark, selfMarkedScore: selfMarkedScores[mark.questionId] };
+      }
+      return mark;
+    });
+
+    const updatedOutput = {
+      ...currentOutput,
+      marks: updatedMarks
+    };
+
+    await prisma.moduleOutput.update({
+      where: { id },
+      data: { output: updatedOutput as unknown as Prisma.InputJsonValue }
+    });
+
+    res.json({ success: true });
+  })
+);
+
+const nesaProgressPaths: PathParams = [
+  "/api/nesa/progress",
+  "/nesa/progress",
+];
+
+app.get(
+  nesaProgressPaths,
+  requireAuth,
+  withErrorBoundary(async (req, res) => {
+    // Fetch user's in-progress exams
+    if (!req.currentUser?.id) {
+      res.json({ progress: [] });
+      return;
+    }
+
+    const progress = await prisma.moduleOutput.findMany({
+      where: {
+        module: ModuleType.NESA_SOFTWARE_EXAM,
+        userId: req.currentUser.id,
+        label: { contains: "In Progress" }
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.json({ progress });
+  })
+);
+
+const nesaSaveProgressSchema = z.object({
+  examId: z.string(),
+  examTitle: z.string(),
+  userAnswers: z.record(z.string(), z.string()),
+  currentQuestionIndex: z.number(),
+});
+
+app.post(
+  nesaProgressPaths,
+  requireAuth,
+  withErrorBoundary(async (req, res) => {
+    if (!req.currentUser?.id) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const payload = nesaSaveProgressSchema.parse(req.body);
+
+    // Find existing progress or create new
+    const existingProgress = await prisma.moduleOutput.findFirst({
+      where: {
+        module: ModuleType.NESA_SOFTWARE_EXAM,
+        userId: req.currentUser.id,
+        label: `In Progress - ${payload.examTitle}`
+      }
+    });
+
+    const progressData = {
+      examId: payload.examId,
+      examTitle: payload.examTitle,
+      userAnswers: payload.userAnswers,
+      currentQuestionIndex: payload.currentQuestionIndex,
+      lastSaved: Date.now(),
+    };
+
+    if (existingProgress) {
+      await prisma.moduleOutput.update({
+        where: { id: existingProgress.id },
+        data: {
+          output: progressData as unknown as Prisma.InputJsonValue,
+        }
+      });
+    } else {
+      await prisma.moduleOutput.create({
+        data: {
+          module: ModuleType.NESA_SOFTWARE_EXAM,
+          userId: req.currentUser.id,
+          label: `In Progress - ${payload.examTitle}`,
+          subject: "Software Engineering",
+          input: { examId: payload.examId } as unknown as Prisma.InputJsonValue,
+          output: progressData as unknown as Prisma.InputJsonValue,
+        }
+      });
+    }
+
+    res.json({ success: true });
+  })
+);
+
+const nesaMarkingPaths: PathParams = [
+  "/api/nesa/mark",
+  "/nesa/mark",
+];
+
+app.post(
+  nesaMarkingPaths,
+  requireAuth,
+  aiLimiter,
+  withErrorBoundary(async (req, res) => {
+    const payload = nesaMarkingRequestSchema.parse(req.body);
+
+    // Create a map of user answers for easy lookup
+    const answerMap = new Map(
+      payload.userAnswers.map(ua => [ua.questionId, ua.answer])
+    );
+
+    // Mark each question
+    const marks: Array<{
+      questionId: string;
+      questionNumber: number;
+      userAnswer: string;
+      correctAnswer?: string;
+      explanation?: string;
+      modelAnswer?: string;
+      exampleCode?: string;
+      diagramDescription?: string;
+      markBreakdown: Array<{
+        criterion: string;
+        marksAwarded: number;
+        maxMarks: number;
+        feedback: string;
+      }>;
+      totalMarks: number;
+      maxMarks: number;
+      feedback: string;
+    }> = [];
+
+    for (const question of payload.questions) {
+      const userAnswer = answerMap.get(question.id) || "";
+
+      // Skip diagram questions - these are self-marking
+      if (question.codeLanguage === "diagram") {
+        marks.push({
+          questionId: question.id,
+          questionNumber: question.questionNumber,
+          userAnswer,
+          ...(question.expectedOutput && { diagramDescription: question.expectedOutput }),
+          markBreakdown: [],
+          totalMarks: 0, // Self-marking - user will assign marks
+          maxMarks: question.marks,
+          feedback: "This is a self-marking question. Review your diagram against the expected output and assess your own work.",
+        });
+        continue;
+      }
+
+      // Skip unanswered questions
+      if (!userAnswer.trim()) {
+        marks.push({
+          questionId: question.id,
+          questionNumber: question.questionNumber,
+          userAnswer: "",
+          markBreakdown: [],
+          totalMarks: 0,
+          maxMarks: question.marks,
+          feedback: "Question not attempted.",
+        });
+        continue;
+      }
+
+      let markingPrompt = "";
+
+      // Different marking strategies based on question type
+      if (question.type === "mcq") {
+        markingPrompt = `You are marking a multiple choice question from a NSW HSC Software Engineering exam.
+
+Question: ${question.prompt}
+
+Options:
+${question.options?.map(opt => `${opt.label}. ${opt.value}`).join("\n")}
+
+Student's answer: ${userAnswer}
+Correct answer: ${question.sampleAnswer}
+
+Provide marking in this JSON format with explanations for ALL options:
+{
+  "correctAnswer": "${question.sampleAnswer}",
+  "explanation": {
+${question.options?.map(opt => `    "${opt.label}": "${opt.label === question.sampleAnswer ? 'CORRECT' : 'INCORRECT'} - Explanation of why this is ${opt.label === question.sampleAnswer ? 'correct' : 'incorrect'}"`).join(",\n")}
+  },
+  "totalMarks": ${question.marks} if student chose ${question.sampleAnswer}, otherwise 0,
+  "maxMarks": ${question.marks},
+  "feedback": "Clear feedback summarizing the student's choice"
+}
+
+IMPORTANT: Explain WHY each option is correct or incorrect.`;
+      } else if (question.type === "matching") {
+        // Parse the JSON answer for matching questions
+        let parsedMatches: Record<string, string> = {};
+        try {
+          parsedMatches = JSON.parse(userAnswer);
+        } catch {
+          parsedMatches = {};
+        }
+
+        markingPrompt = `You are marking a matching question from a NSW HSC Software Engineering exam.
+
+Question: ${question.prompt}
+
+Correct matching pairs:
+${question.matchingPairs?.map((pair, idx) => `${idx + 1}. ${pair.left} → ${pair.right}`).join("\n")}
+
+Student's matches: ${JSON.stringify(parsedMatches)}
+
+Marking criteria: ${question.markingCriteria?.join(", ")}
+
+Provide marking in this JSON format with detailed match-by-match feedback:
+{
+  "matchResults": [
+    ${question.matchingPairs?.map(pair => `{
+      "left": "${pair.left}",
+      "correctRight": "${pair.right}",
+      "userRight": "<what user matched ${pair.left} to, or null if not matched>",
+      "isCorrect": boolean,
+      "feedback": "Brief explanation why this is correct/incorrect"
+    }`).join(",\n    ")}
+  ],
+  "markBreakdown": [
+    {
+      "criterion": "Match accuracy",
+      "marksAwarded": number,
+      "maxMarks": ${question.marks},
+      "feedback": "Overall feedback on matching performance"
+    }
+  ],
+  "totalMarks": number,
+  "maxMarks": ${question.marks},
+  "feedback": "Overall feedback"
+}`;
+      } else if (question.type === "short-answer" || question.type === "extended") {
+        markingPrompt = `You are marking a ${question.type} question from a NSW HSC Software Engineering exam. You must be EXTREMELY STRICT and RIGOROUS - this is a formal HSC assessment.
+
+Question: ${question.prompt}
+
+Student's answer:
+${userAnswer}
+
+Sample/Model answer:
+${question.sampleAnswer || "Use your expertise to assess the answer"}
+
+Marking criteria:
+${question.markingCriteria?.map((c, i) => `${i + 1}. ${c}`).join("\n")}
+
+Marks available: ${question.marks}
+
+🚨 CRITICAL MARKING RULES - YOU MUST FOLLOW THESE EXACTLY:
+
+STEP 1: DETECT GIBBERISH (CHECK THIS FIRST!)
+Before awarding ANY marks, you MUST check if the answer is gibberish:
+- Random keystrokes: "asdfghjkl", "jfkdlsajfkldsa", "qwertyuiop", "zxcvbnm"
+- Repetitive patterns: "aaaaaaaa", "123456789", "asdasdasd", "testtest"
+- No coherent words: "fjdksla jfkdlsa jfklds"
+- No technical content: answers that don't mention any software engineering concepts
+
+EXAMPLES OF ANSWERS THAT GET ZERO MARKS:
+❌ "asdfjkl;asdfjkl;asdfjkl;"
+❌ "jfkdlsajfkldsjafkldsjafkldsjaklfds"
+❌ "qwertyqwertyqwerty"
+❌ "123456789 asdfghjkl"
+❌ "test test test test"
+❌ "aaaaaaaaaaaaaaaaa"
+❌ Any answer with less than 3 recognizable English words
+❌ Any answer without at least one software engineering term
+
+IF THE ANSWER IS GIBBERISH: Set ALL marksAwarded to 0 and totalMarks to 0.
+
+STEP 2: AWARD MARKS ONLY IF (ALL must be true):
+- The answer contains coherent, grammatically correct sentences
+- Software engineering terminology is used correctly
+- The response directly addresses the question
+- Technical claims are supported with explanations
+- The answer shows logical reasoning
+
+PARTIAL MARKS:
+- Only if SOME marking criteria are met with accurate technical content
+- Each mark needs a specific, correct technical statement to justify it
+- Generic statements without depth = ZERO marks
+
+EXTENDED RESPONSE SPECIFIC (${question.type === "extended" ? "THIS QUESTION" : "if applicable"}):
+- Requires synthesis of multiple concepts with depth
+- Surface-level answers get 0-2 marks maximum
+- 3-5 marks only for good understanding with examples
+- 6+ marks only for exceptional, comprehensive analysis
+
+⚠️ IMPORTANT: If you're unsure whether an answer is gibberish, IT IS GIBBERISH. Mark it 0.
+⚠️ IMPORTANT: When in doubt between two mark levels, ALWAYS choose the LOWER mark.
+⚠️ IMPORTANT: Real NESA markers are very strict. You should be too.
+
+Provide marking in this JSON format:
+{
+  "modelAnswer": "A comprehensive model answer showing what a full-marks response should include",
+  "markBreakdown": [
+    {
+      "criterion": "criterion name",
+      "marksAwarded": number (BE STRICT - 0 for nonsense),
+      "maxMarks": number,
+      "feedback": "specific feedback for this criterion"
+    }
+  ],
+  "totalMarks": number (sum of marksAwarded),
+  "maxMarks": ${question.marks},
+  "feedback": "Overall constructive feedback highlighting strengths and areas for improvement"
+}`;
+      } else if (question.type === "code") {
+        if (question.codeLanguage === "python") {
+          markingPrompt = `You are marking a Python programming question from a NSW HSC Software Engineering exam. Be STRICT - only award marks for correct, functional code.
+
+Question: ${question.prompt}
+
+Expected output/behavior:
+${question.expectedOutput || "Assess code quality and correctness"}
+
+Student's code:
+\`\`\`python
+${userAnswer}
+\`\`\`
+
+Sample solution:
+${question.sampleAnswer || "Provide your expert solution"}
+
+Marking criteria:
+${question.markingCriteria?.map((c, i) => `${i + 1}. ${c}`).join("\n")}
+
+Marks available: ${question.marks}
+
+STRICT MARKING RULES:
+- Award 0 marks if the code is gibberish, random keystrokes, or not valid Python
+- Award 0 marks if the code would not run or has major syntax errors
+- Only award marks if the code actually addresses the question requirements
+- Check for correct logic, not just correct syntax
+- This is a formal HSC exam - be rigorous
+
+Provide marking in this JSON format:
+{
+  "exampleCode": "A well-commented example solution showing best practices",
+  "markBreakdown": [
+    {
+      "criterion": "criterion name (e.g., Correctness, Code structure, Edge cases)",
+      "marksAwarded": number (0 for nonsense/broken code),
+      "maxMarks": number,
+      "feedback": "specific feedback"
+    }
+  ],
+  "totalMarks": number,
+  "maxMarks": ${question.marks},
+  "feedback": "Overall feedback on code quality, correctness, and suggestions for improvement"
+}`;
+        } else if (question.codeLanguage === "sql") {
+          markingPrompt = `You are marking an SQL query question from a NSW HSC Software Engineering exam. Be STRICT - only award marks for correct, functional SQL.
+
+Question: ${question.prompt}
+
+Sample data:
+${question.sqlSampleData?.map(table => `
+Table: ${table.tableName}
+Columns: ${table.columns.join(", ")}
+Sample rows: ${table.rows.length} rows provided
+`).join("\n")}
+
+Expected output:
+${question.expectedOutput || "Assess query correctness"}
+
+Student's query:
+\`\`\`sql
+${userAnswer}
+\`\`\`
+
+Sample solution:
+${question.sampleAnswer || "Provide your expert solution"}
+
+Marking criteria:
+${question.markingCriteria?.map((c, i) => `${i + 1}. ${c}`).join("\n")}
+
+Marks available: ${question.marks}
+
+STRICT MARKING RULES:
+- Award 0 marks if the query is gibberish, random keystrokes, or not valid SQL
+- Award 0 marks if the query has syntax errors or would not execute
+- Only award marks if the query actually addresses the question requirements
+- Check that the query would produce the expected output
+- This is a formal HSC exam - be rigorous
+
+Provide marking in this JSON format:
+{
+  "exampleCode": "A clear example SQL query with explanation",
+  "markBreakdown": [
+    {
+      "criterion": "criterion name (e.g., Correct syntax, Proper joins, Accurate results)",
+      "marksAwarded": number (0 for nonsense/broken SQL),
+      "maxMarks": number,
+      "feedback": "specific feedback"
+    }
+  ],
+  "totalMarks": number,
+  "maxMarks": ${question.marks},
+  "feedback": "Overall feedback on query structure and optimization suggestions"
+}`;
+        } else if (question.codeLanguage === "diagram") {
+          // For diagram questions, the answer is a JSON stringified array of shapes
+          markingPrompt = `You are marking a diagram question from a NSW HSC Software Engineering exam.
+
+Question: ${question.prompt}
+
+Expected diagram description:
+${question.expectedOutput || "Assess diagram completeness and correctness"}
+
+Student has submitted a diagram (technical drawing data provided).
+
+Marking criteria:
+${question.markingCriteria?.map((c, i) => `${i + 1}. ${c}`).join("\n")}
+
+Marks available: ${question.marks}
+
+Note: The student's answer is in a technical format. Assess based on whether a diagram was attempted and provide constructive feedback.
+
+Provide marking in this JSON format:
+{
+  "diagramDescription": "A detailed description of what an ideal diagram should include (e.g., 'Structure chart showing main module at top with hierarchical connections to 3 sub-modules: Input, Process, Output. Each connection labeled with data flow.')",
+  "markBreakdown": [
+    {
+      "criterion": "criterion name (e.g., Correct symbols, Proper hierarchy, Clear labels)",
+      "marksAwarded": number,
+      "maxMarks": number,
+      "feedback": "specific feedback"
+    }
+  ],
+  "totalMarks": number,
+  "maxMarks": ${question.marks},
+  "feedback": "Overall feedback on diagram structure and suggestions. Note: Award partial marks for attempting the diagram."
+}`;
+        }
+      }
+
+      // Call OpenAI to mark the question
+      const markingResult = await runChatCompletion<{
+        correctAnswer?: string;
+        explanation?: string;
+        modelAnswer?: string;
+        exampleCode?: string;
+        diagramDescription?: string;
+        markBreakdown?: Array<{
+          criterion: string;
+          marksAwarded: number;
+          maxMarks: number;
+          feedback: string;
+        }>;
+        totalMarks: number;
+        maxMarks: number;
+        feedback: string;
+      }>({
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert HSC Software Engineering marker for NESA NSW. You follow official marking guidelines strictly and provide fair, accurate assessment. You award full marks to excellent answers with correct technical content. You detect and reject gibberish/keyboard mashing with zero marks. For genuine attempts with partial understanding, you award marks proportionally based on what is correct. You provide constructive feedback that helps students improve.",
+          },
+          {
+            role: "user",
+            content: markingPrompt,
+          },
+        ],
+        responseFormat: "json",
+      });
+
+      // Validate: Check if answer is gibberish and override AI if necessary
+      let finalTotalMarks = markingResult.totalMarks;
+      let finalMarkBreakdown = markingResult.markBreakdown || [];
+      let finalFeedback = markingResult.feedback;
+
+      // Gibberish detection patterns
+      const isGibberish = (text: string): boolean => {
+        const cleanText = text.toLowerCase().trim();
+
+        // Check for empty or very short
+        if (cleanText.length < 10) return false; // Too short to judge
+
+        // Check for repetitive patterns (same char repeated)
+        if (/(.)\1{7,}/.test(cleanText)) return true; // 8+ same chars in a row
+
+        // Check for keyboard mashing patterns
+        const gibberishPatterns = [
+          /asdf/gi, /qwer/gi, /zxcv/gi, /hjkl/gi, /yuio/gi,
+          /jfkdl/gi, /fjdks/gi, /lkjfd/gi, /dfjkl/gi
+        ];
+        const matchCount = gibberishPatterns.filter(p => p.test(cleanText)).length;
+        if (matchCount >= 2) return true; // Multiple keyboard patterns
+
+        // Check for low word/non-word ratio
+        const words = cleanText.split(/\s+/);
+        const recognizableWords = words.filter(word => {
+          // Simple check: does it have vowels and consonants?
+          return word.length >= 3 && /[aeiou]/.test(word) && /[bcdfghjklmnpqrstvwxyz]/.test(word);
+        });
+
+        if (words.length >= 5 && recognizableWords.length / words.length < 0.3) {
+          return true; // Less than 30% recognizable words
+        }
+
+        return false;
+      };
+
+      // Override if gibberish detected but AI gave marks
+      if ((question.type === "short-answer" || question.type === "extended") &&
+          userAnswer &&
+          isGibberish(userAnswer) &&
+          markingResult.totalMarks > 0) {
+
+        console.warn(`[GIBBERISH DETECTED] Question ${question.id}: AI gave ${markingResult.totalMarks} marks, overriding to 0`);
+
+        finalTotalMarks = 0;
+        finalMarkBreakdown = (markingResult.markBreakdown || []).map(criterion => ({
+          ...criterion,
+          marksAwarded: 0,
+          feedback: "Answer contains gibberish or keyboard mashing - no marks awarded."
+        }));
+        finalFeedback = "This answer appears to contain random characters or keyboard mashing rather than a genuine attempt. No marks can be awarded for nonsensical responses. Please provide a proper answer with technical content.";
+      }
+
+      // Build the mark object
+      const mark: typeof marks[0] = {
+        questionId: question.id,
+        questionNumber: question.questionNumber,
+        userAnswer,
+        ...(markingResult.correctAnswer !== undefined && { correctAnswer: markingResult.correctAnswer }),
+        ...(markingResult.explanation !== undefined && { explanation: markingResult.explanation }),
+        ...(markingResult.modelAnswer !== undefined && { modelAnswer: markingResult.modelAnswer }),
+        ...(markingResult.exampleCode !== undefined && { exampleCode: markingResult.exampleCode }),
+        ...(markingResult.diagramDescription !== undefined && { diagramDescription: markingResult.diagramDescription }),
+        markBreakdown: finalMarkBreakdown,
+        totalMarks: finalTotalMarks,
+        maxMarks: markingResult.maxMarks,
+        feedback: finalFeedback,
+      };
+
+      marks.push(mark);
+    }
+
+    // Calculate overall score
+    const totalScore = marks.reduce((sum, m) => sum + m.totalMarks, 0);
+    const totalPossible = marks.reduce((sum, m) => sum + m.maxMarks, 0);
+    const percentage = totalPossible > 0 ? Math.round((totalScore / totalPossible) * 100) : 0;
+
+    const markedAttempt = {
+      examId: `attempt-${Date.now()}`,
+      examRecordId: payload.examRecordId, // Link to the original exam record
+      examTitle: payload.examTitle,
+      questions: payload.questions,
+      marks,
+      totalScore,
+      totalPossible,
+      percentage,
+      completedAt: Date.now(),
+    };
+
+    // Save the marked attempt to the database
+    const savedRecord = await persistModuleOutput({
+      module: ModuleType.NESA_SOFTWARE_EXAM,
+      subject: "Software Engineering",
+      label: `${payload.examTitle} - Marked Attempt (${percentage}%)`,
+      input: payload as unknown as JsonValue,
+      output: markedAttempt as unknown as JsonValue,
+      userId: req.currentUser?.id ?? null,
+    });
+
+    // Delete the progress record since the exam is now marked
+    if (req.currentUser?.id && payload.examRecordId) {
+      // Delete progress by matching the examId field (which is the exam record ID)
+      const progressRecords = await prisma.moduleOutput.findMany({
+        where: {
+          module: ModuleType.NESA_SOFTWARE_EXAM,
+          userId: req.currentUser.id,
+          label: { contains: "In Progress" }
+        }
+      });
+
+      // Filter to find progress records that match this exam's record ID
+      const matchingProgress = progressRecords.filter(record => {
+        const output = record.output as { examId?: string };
+        return output.examId === payload.examRecordId;
+      });
+
+      // Delete the matching progress records
+      if (matchingProgress.length > 0) {
+        await prisma.moduleOutput.deleteMany({
+          where: {
+            id: { in: matchingProgress.map(p => p.id) }
+          }
+        });
+      }
+    }
+
+    res.json({ ...markedAttempt, savedRecordId: savedRecord?.id });
   })
 );
 

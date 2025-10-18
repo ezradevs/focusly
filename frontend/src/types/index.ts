@@ -397,3 +397,44 @@ export interface NESAUserAnswer {
   code?: string;
   diagram?: string;
 }
+
+export interface NESAQuestionMark {
+  questionId: string;
+  questionNumber: number;
+  userAnswer: string;
+  correctAnswer?: string; // For MCQs
+  explanation?: string | Record<string, string>; // For MCQs - can be object with per-option explanations
+  modelAnswer?: string; // For short/extended response
+  exampleCode?: string; // For code questions
+  diagramDescription?: string; // For diagram questions
+  matchResults?: {
+    left: string;
+    correctRight: string;
+    userRight?: string | null;
+    isCorrect: boolean;
+    feedback: string;
+  }[]; // For matching questions
+  markBreakdown: {
+    criterion: string;
+    marksAwarded: number;
+    maxMarks: number;
+    feedback: string;
+  }[];
+  totalMarks: number;
+  maxMarks: number;
+  feedback: string;
+  selfMarkedScore?: number; // For user-entered marks on diagram questions
+}
+
+export interface NESAMarkedAttempt {
+  examId: string;
+  examRecordId?: string; // Link to the original exam record
+  examTitle: string;
+  questions: NESAQuestion[];
+  marks: NESAQuestionMark[];
+  totalScore: number;
+  totalPossible: number;
+  percentage: number;
+  completedAt: number;
+  savedRecordId?: string; // The database record ID for this marked attempt
+}

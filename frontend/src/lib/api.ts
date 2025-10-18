@@ -14,6 +14,8 @@ import type {
   ChatRole,
   NESAExam,
   NESAModuleName,
+  NESAMarkedAttempt,
+  NESAQuestion,
 } from "@/types";
 
 const API_BASE_URL =
@@ -328,5 +330,39 @@ export const focuslyApi = {
   deleteNESAExam: (id: string) =>
     request<{ success: boolean }>(`/api/nesa/exams/${id}`, {
       method: "DELETE",
+    }),
+
+  markNESAExam: (payload: {
+    examTitle: string;
+    examRecordId?: string;
+    questions: NESAQuestion[];
+    userAnswers: Array<{ questionId: string; answer: string }>;
+  }) =>
+    request<NESAMarkedAttempt>("/api/nesa/mark", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  getNESAAttempts: () =>
+    request<{ attempts: ModuleOutputRecord[] }>("/api/nesa/attempts"),
+
+  updateNESAAttemptSelfMarks: (id: string, selfMarkedScores: Record<string, number>) =>
+    request<{ success: boolean }>(`/api/nesa/attempts/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ selfMarkedScores }),
+    }),
+
+  getNESAProgress: () =>
+    request<{ progress: ModuleOutputRecord[] }>("/api/nesa/progress"),
+
+  saveNESAProgress: (payload: {
+    examId: string;
+    examTitle: string;
+    userAnswers: Record<string, string>;
+    currentQuestionIndex: number;
+  }) =>
+    request<{ success: boolean }>("/api/nesa/progress", {
+      method: "POST",
+      body: JSON.stringify(payload),
     }),
 };

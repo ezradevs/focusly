@@ -25,7 +25,8 @@ import { toast } from "sonner";
 interface DiagramCanvasProps {
   diagramType?: string;
   expectedOutput?: string;
-  onDiagramChange?: (imageData: string) => void;
+  initialShapes?: string; // JSON stringified shapes array
+  onDiagramChange?: (shapesData: string) => void;
 }
 
 type ToolType = "select" | "pen" | "rectangle" | "circle" | "line" | "arrow" | "text";
@@ -49,6 +50,7 @@ interface Shape {
 export function DiagramCanvas({
   diagramType = "Structure Chart",
   expectedOutput,
+  initialShapes,
   onDiagramChange,
 }: DiagramCanvasProps) {
   const stageRef = useRef<Konva.Stage>(null);
@@ -60,12 +62,31 @@ export function DiagramCanvas({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentShape, setCurrentShape] = useState<Shape | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Style controls
   const [strokeColor, setStrokeColor] = useState("#000000");
   const [strokeWidth, setStrokeWidth] = useState(2);
   const [fillColor, setFillColor] = useState("transparent");
   const [fontSize, setFontSize] = useState(16);
+
+  // Load initial shapes from saved answer
+  useEffect(() => {
+    if (initialShapes && !isInitialized) {
+      try {
+        const parsedShapes = JSON.parse(initialShapes) as Shape[];
+        if (Array.isArray(parsedShapes) && parsedShapes.length > 0) {
+          setShapes(parsedShapes);
+          setHistory([parsedShapes]);
+          setHistoryStep(0);
+        }
+      } catch (error) {
+        // If parsing fails, start with empty canvas
+        console.error("Failed to parse initial shapes:", error);
+      }
+      setIsInitialized(true);
+    }
+  }, [initialShapes, isInitialized]);
 
   // Add to history
   const addToHistory = useCallback((newShapes: Shape[]) => {
@@ -79,23 +100,37 @@ export function DiagramCanvas({
   const updateShapes = useCallback((newShapes: Shape[]) => {
     setShapes(newShapes);
     addToHistory(newShapes);
-  }, [addToHistory]);
+    // Auto-save diagram by calling onDiagramChange with JSON stringified shapes
+    if (onDiagramChange) {
+      onDiagramChange(JSON.stringify(newShapes));
+    }
+  }, [addToHistory, onDiagramChange]);
 
   // Undo
   const handleUndo = useCallback(() => {
     if (historyStep > 0) {
+      const newShapes = history[historyStep - 1];
       setHistoryStep(historyStep - 1);
-      setShapes(history[historyStep - 1]);
+      setShapes(newShapes);
+      // Save the undone state
+      if (onDiagramChange) {
+        onDiagramChange(JSON.stringify(newShapes));
+      }
     }
-  }, [history, historyStep]);
+  }, [history, historyStep, onDiagramChange]);
 
   // Redo
   const handleRedo = useCallback(() => {
     if (historyStep < history.length - 1) {
+      const newShapes = history[historyStep + 1];
       setHistoryStep(historyStep + 1);
-      setShapes(history[historyStep + 1]);
+      setShapes(newShapes);
+      // Save the redone state
+      if (onDiagramChange) {
+        onDiagramChange(JSON.stringify(newShapes));
+      }
     }
-  }, [history, historyStep]);
+  }, [history, historyStep, onDiagramChange]);
 
   // Clear canvas
   const handleClear = () => {
@@ -343,7 +378,7 @@ export function DiagramCanvas({
       link.download = `${diagramType.replace(/\s+/g, "_")}_diagram.png`;
       link.click();
       toast.success("Diagram exported as PNG");
-      onDiagramChange?.(dataURL);
+      // Note: Diagram is already auto-saved as JSON on every change
     } catch (error) {
       toast.error("Failed to export diagram");
     }
@@ -353,7 +388,6 @@ export function DiagramCanvas({
   const renderShape = (shape: Shape) => {
     const commonProps = {
       id: shape.id,
-      key: shape.id,
       draggable: tool === "select",
       onClick: () => handleShapeClick(shape.id),
       onTap: () => handleShapeClick(shape.id),
@@ -365,6 +399,7 @@ export function DiagramCanvas({
       case "rectangle":
         return (
           <Rect
+            key={shape.id}
             {...commonProps}
             x={shape.x}
             y={shape.y}
@@ -378,6 +413,7 @@ export function DiagramCanvas({
       case "circle":
         return (
           <Circle
+            key={shape.id}
             {...commonProps}
             x={shape.x}
             y={shape.y}
@@ -390,6 +426,7 @@ export function DiagramCanvas({
       case "line":
         return (
           <Line
+            key={shape.id}
             {...commonProps}
             points={shape.points || []}
             stroke={shape.stroke}
@@ -399,6 +436,7 @@ export function DiagramCanvas({
       case "arrow":
         return (
           <Arrow
+            key={shape.id}
             {...commonProps}
             points={shape.points || []}
             stroke={shape.stroke}
@@ -411,6 +449,7 @@ export function DiagramCanvas({
       case "freehand":
         return (
           <Line
+            key={shape.id}
             {...commonProps}
             points={shape.points || []}
             stroke={shape.stroke}
@@ -423,6 +462,7 @@ export function DiagramCanvas({
       case "text":
         return (
           <KonvaText
+            key={shape.id}
             {...commonProps}
             x={shape.x}
             y={shape.y}
