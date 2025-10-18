@@ -278,7 +278,7 @@ export function NESAExamModule() {
               {question.options?.map((option) => (
                 <label
                   key={option.label}
-                  className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition"
+                  className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition"
                 >
                   <input
                     type="radio"
@@ -286,7 +286,6 @@ export function NESAExamModule() {
                     value={option.label}
                     checked={userAnswers[question.id] === option.label}
                     onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                    className="mt-1"
                   />
                   <div>
                     <span className="font-semibold">{option.label}.</span> {option.value}
