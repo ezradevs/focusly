@@ -414,7 +414,7 @@ type PersistArgs = {
 };
 
 function deriveUserDisplayName(
-  user?: { name?: string | null; email?: string | null },
+  user?: { name?: string | null; email?: string | null } | null,
   fallback?: string | null
 ): string | null {
   const fromUserName = user?.name?.trim();
