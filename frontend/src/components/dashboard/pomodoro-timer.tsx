@@ -327,11 +327,11 @@ export function PomodoroTimer() {
                   </linearGradient>
                 </defs>
               </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <Badge variant="outline" className="mb-2">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                <Badge variant="outline">
                   {phaseLabels[phase]}
                 </Badge>
-                <div className="text-6xl font-bold tabular-nums tracking-tight">
+                <div className="text-6xl font-bold tabular-nums tracking-tight leading-none">
                   {String(minutes).padStart(2, "0")}:
                   {String(seconds).padStart(2, "0")}
                 </div>
