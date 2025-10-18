@@ -16,6 +16,7 @@ import { usePreferencesStore } from "@/store/preferences";
 import { SubjectSelect } from "@/components/subject-select";
 import { useAuthStore } from "@/store/auth";
 import { useUIStore } from "@/store/ui";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 
 interface TutorChatbotProps {
   className?: string;
@@ -187,7 +188,11 @@ export function TutorChatbot({ className }: TutorChatbotProps) {
                         Focusly Tutor
                       </div>
                     )}
-                          <p className="whitespace-pre-line leading-relaxed">{message.content}</p>
+                          {message.role === "assistant" ? (
+                            <MarkdownRenderer content={message.content} />
+                          ) : (
+                            <p className="whitespace-pre-line leading-relaxed">{message.content}</p>
+                          )}
                         </div>
                       </div>
                     ))}

@@ -17,12 +17,24 @@ export function formatQuestionType(type: string): string {
 }
 
 /**
- * Format subject name to title case (e.g., "mathematics" -> "Mathematics")
+ * Format subject name to title case
+ * Examples:
+ * - "mathematics" -> "Mathematics"
+ * - "software-engineering" -> "Software Engineering"
+ * - "COMPUTER SCIENCE" -> "Computer Science"
  */
 export function formatSubject(subject: string | null | undefined): string {
   if (!subject) return "";
-  return subject
+
+  // Replace hyphens and underscores with spaces, then split
+  const normalized = subject.replace(/[-_]/g, " ");
+
+  return normalized
     .split(" ")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .map((word) => {
+      if (!word) return "";
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .filter(Boolean)
     .join(" ");
 }

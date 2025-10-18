@@ -51,13 +51,44 @@ export function PomodoroTimer() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tempSettings, setTempSettings] = useState(settings);
 
-  // Timer tick effect
+  // Timer tick effect with tab visibility support
   useEffect(() => {
     if (!isRunning) return;
-    const interval = setInterval(() => {
-      tick();
-    }, 1000);
-    return () => clearInterval(interval);
+
+    let interval: NodeJS.Timeout | null = null;
+
+    const startInterval = () => {
+      interval = setInterval(() => {
+        tick();
+      }, 1000);
+    };
+
+    const stopInterval = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+
+    // Handle visibility change - pause timer when tab is inactive
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopInterval();
+      } else {
+        startInterval();
+      }
+    };
+
+    // Start timer initially
+    startInterval();
+
+    // Listen for visibility changes
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      stopInterval();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [isRunning, tick]);
 
   // Notification on phase complete

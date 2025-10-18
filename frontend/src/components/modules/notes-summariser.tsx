@@ -100,8 +100,9 @@ export function NotesSummariserModule() {
             // Dynamically import PDF.js to avoid SSR issues
             const pdfjsLib = await import("pdfjs-dist");
 
-            // Configure worker to use local file
-            pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf-worker/pdf.worker.min.mjs";
+            // Configure worker path (uses environment variable or default)
+            pdfjsLib.GlobalWorkerOptions.workerSrc =
+              process.env.NEXT_PUBLIC_PDF_WORKER_PATH || "/pdf-worker/pdf.worker.min.mjs";
 
             // Extract text from PDF
             const arrayBuffer = await file.arrayBuffer();

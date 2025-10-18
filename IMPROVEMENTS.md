@@ -78,57 +78,69 @@
   - Logs errors in development mode for debugging
   - Silently handles expected failures (not logged in)
 
-### Remaining Critical Functionality Bugs
-- [ ] **LocalStorage Quota Can Be Exceeded** - Large flashcard/exam sessions
-  - Location: All modules using localStorage
-  - Impact: Data loss, broken functionality
-  - Fix: Implement quota checking, compression, or IndexedDB migration
+### Medium Priority Bugs Completed ✓
+- [x] **LocalStorage Quota Can Be Exceeded** - Implemented monitoring and cleanup
+  - Created `/utils/storage.ts` with quota checking utilities
+  - Monitors storage usage and warns when near limit
+  - Automatic cleanup of old quiz/exam sessions (keeps most recent 10-15)
+  - Applied to exam and quiz stores
 
-### Medium Priority Bugs
-- [ ] **Exam Timer Continues When Tab Inactive** - `setInterval` keeps running
-  - Location: All timer implementations
-  - Impact: Inaccurate time tracking
-  - Fix: Use `document.visibilityState` API to pause timers
+- [x] **Exam Timer Continues When Tab Inactive** - Fixed with Visibility API
+  - Implemented `visibilitychange` event listener
+  - Timers pause when tab is hidden
+  - Timers resume when tab becomes visible
+  - Applied to both Pomodoro and Exam timers
 
-- [ ] **PDF Worker Path Hardcoded** - May break in different environments
-  - Location: PDF upload components
-  - Impact: PDF parsing fails if path incorrect
-  - Fix: Use environment variable or dynamic path resolution
+- [x] **PDF Worker Path Hardcoded** - Now configurable via environment variable
+  - Uses `NEXT_PUBLIC_PDF_WORKER_PATH` env variable
+  - Falls back to default `/pdf-worker/pdf.worker.min.mjs`
+  - Documented in `.env.example`
 
-- [ ] **Date Formatting Hardcoded to en-US** - Not i18n friendly
-  - Location: Multiple components using `toLocaleDateString`
-  - Impact: Wrong date format for non-US users
-  - Fix: Use user's locale or app-wide setting
+- [x] **Date Formatting Hardcoded to en-US** - Internationalized with date-fns
+  - Created `/utils/date.ts` with i18n date utilities
+  - Uses browser locale automatically
+  - Consistent formatting across app
+  - Relative time support (e.g., "2 hours ago")
 
-- [ ] **Mobile Dialogs Don't Fit on Small Screens** - Overflow issues
-  - Location: Various modal/dialog components
-  - Impact: Poor mobile UX
-  - Fix: Make dialogs responsive, add scroll
+- [x] **Mobile Dialogs Don't Fit on Small Screens** - Now fully responsive
+  - Updated Dialog component with responsive classes
+  - Added horizontal margins on mobile: `mx-4 sm:mx-auto`
+  - Max height with scroll: `max-h-[90vh] overflow-y-auto`
+  - Proper padding for all breakpoints
 
-- [ ] **Markdown Rendering Edge Cases** - Code blocks/tables may not render correctly
-  - Location: Any component rendering markdown
-  - Impact: Content displays incorrectly
-  - Fix: Test with complex markdown, fix CSS
+- [x] **Markdown Rendering Edge Cases** - Enhanced with custom components
+  - Tables now scroll horizontally on mobile
+  - Code blocks have proper overflow handling
+  - Inline code has better styling
+  - Links open in new tab with security attributes (`rel="noopener noreferrer"`)
+  - Better table cell borders and padding
 
-- [ ] **Image Occlusion Editor Lags with Large Images** - No optimization
-  - Location: `frontend/src/components/modules/flashcard-maker.tsx`
-  - Impact: Poor UX, browser freezes
-  - Fix: Resize images before editing, use canvas optimization
+- [x] **Image Occlusion Editor Lags with Large Images** - Optimized with canvas resizing
+  - Images resized to max 1200x1200px while maintaining aspect ratio
+  - Compressed to 85% quality JPEG
+  - Loading toast for images over 1MB
+  - Prevents browser freezing
 
-- [ ] **Subject Formatting Inconsistency** - "software-engineering" vs "Software Engineering"
-  - Location: Multiple places throughout app
-  - Impact: Visual inconsistency
-  - Fix: Centralize formatting in `formatSubject` utility
+- [x] **Subject Formatting Inconsistency** - Enhanced Title Case formatting
+  - Updated `formatSubject` utility to handle hyphens and underscores
+  - Converts `software-engineering` → `Software Engineering`
+  - Consistent Title Case across entire app
 
-- [ ] **Quiz Session State Lost on Navigation** - No persistence
-  - Location: Quiz mode component
-  - Impact: Users lose progress if they navigate away
-  - Fix: Save state to localStorage or prompt before navigation
+- [x] **Quiz Session State Lost on Navigation** - Now fully persisted
+  - Added `currentQuestionIndex` and `draftAnswers` to QuizSession type
+  - State saved to localStorage via Zustand persistence
+  - Users can navigate away and return without losing progress
+  - Draft answers preserved across sessions
 
-- [ ] **Dark Mode Inconsistencies** - Some components don't respect theme
-  - Location: Various UI components
-  - Impact: Jarring UX
-  - Fix: Audit all components, ensure proper dark mode support
+- [x] **Dark Mode Inconsistencies** - Fully audited and fixed
+  - Fixed hardcoded `bg-white` in diagram canvas (now `bg-background`)
+  - Verified no other hardcoded colors throughout app
+  - All components use proper Tailwind dark mode utilities
+
+- [x] **AI Tutor Markdown Formatting** - Responses now rendered as markdown
+  - Tutor chatbot messages use MarkdownRenderer
+  - Supports code blocks, lists, bold, italic, links
+  - User messages remain plain text for clarity
 
 ---
 

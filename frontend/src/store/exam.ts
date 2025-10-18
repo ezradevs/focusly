@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ExamSession, ExamAnswer, ExamQuestion } from "@/types";
+import { cleanupOldSessions, monitorStorageUsage } from "@/utils/storage";
 
 interface ExamState {
   sessions: ExamSession[];
@@ -50,6 +51,11 @@ export const useExamStore = create<ExamState>()(
           sessions: [session, ...state.sessions].slice(0, 20),
           activeSessionId: session.id,
         }));
+
+        // Monitor storage usage and cleanup if needed
+        monitorStorageUsage();
+        cleanupOldSessions("focusly-exam-history", 15);
+
         return session;
       },
       saveAnswer: (sessionId, answer) =>

@@ -71,6 +71,8 @@ export interface QuizSession {
   };
   completedAt?: number | null;
   createdAt: number;
+  currentQuestionIndex?: number;
+  draftAnswers?: { [questionId: string]: string };
 }
 
 export type FlashcardType = "basic" | "cloze" | "image-occlusion";

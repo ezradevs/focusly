@@ -61,13 +61,22 @@ export function QuizModeModule() {
     recordAttempt,
     completeSession,
     resetSession,
+    updateCurrentQuestionIndex,
+    updateDraftAnswer,
   } = useQuizStore();
 
   const activeSession =
     sessions.find((session) => session.id === activeSessionId) ?? sessions[0];
 
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [drafts, setDrafts] = useState<DraftState>({});
+  const currentIndex = activeSession?.currentQuestionIndex ?? 0;
+  const drafts = activeSession?.draftAnswers ?? {};
+
+  const setCurrentIndex = useCallback((indexOrFn: number | ((prev: number) => number)) => {
+    if (!activeSession) return;
+    const newIndex = typeof indexOrFn === 'function' ? indexOrFn(currentIndex) : indexOrFn;
+    updateCurrentQuestionIndex(activeSession.id, newIndex);
+  }, [activeSession, currentIndex, updateCurrentQuestionIndex]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [viewingHistory, setViewingHistory] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
@@ -102,8 +111,6 @@ export function QuizModeModule() {
     }
     const session = createSession(stagedQuestions);
     setActiveSession(session.id);
-    setCurrentIndex(0);
-    setDrafts({});
     toast.success("Quiz session ready");
   };
 
@@ -116,8 +123,6 @@ export function QuizModeModule() {
       }
       const session = createSession(data.questions);
       setActiveSession(session.id);
-      setCurrentIndex(0);
-      setDrafts({});
       setShowLoadDialog(false);
       toast.success(`Loaded ${data.questions.length} questions`);
     } catch (error) {
@@ -128,15 +133,14 @@ export function QuizModeModule() {
   const resetCurrentSession = () => {
     if (!activeSession) return;
     resetSession(activeSession.id);
-    setDrafts({});
-    setCurrentIndex(0);
     toast.success("Session reset", {
       description: "All attempts cleared. Ready to start fresh!",
     });
   };
 
   const handleSelectOption = (questionId: string, value: string) => {
-    setDrafts((prev) => ({ ...prev, [questionId]: value }));
+    if (!activeSession) return;
+    updateDraftAnswer(activeSession.id, questionId, value);
   };
 
   const determineCorrect = (
@@ -634,7 +638,6 @@ export function QuizModeModule() {
                           className="mt-4"
                           onClick={() => {
                             setActiveSession(session.id);
-                            setCurrentIndex(0);
                             setViewingHistory(false);
                           }}
                         >

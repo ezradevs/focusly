@@ -549,7 +549,7 @@ export function DiagramCanvas({
           </div>
 
           {/* Canvas */}
-          <div className="border-2 border-dashed rounded-lg overflow-hidden bg-white">
+          <div className="border-2 border-dashed rounded-lg overflow-hidden bg-background">
             <Stage
               ref={stageRef}
               width={800}

@@ -68,15 +68,44 @@ export function ExamTakingViewer({
     setQuestionStartTime(timeMap);
   }, [session]);
 
-  // Timer effect
+  // Timer effect with tab visibility support
   useEffect(() => {
     if (session.isPaused) return;
 
-    const interval = setInterval(() => {
-      setElapsedSeconds((prev) => prev + 1);
-    }, 1000);
+    let interval: NodeJS.Timeout | null = null;
 
-    return () => clearInterval(interval);
+    const startInterval = () => {
+      interval = setInterval(() => {
+        setElapsedSeconds((prev) => prev + 1);
+      }, 1000);
+    };
+
+    const stopInterval = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+
+    // Handle visibility change - pause timer when tab is inactive
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopInterval();
+      } else {
+        startInterval();
+      }
+    };
+
+    // Start timer initially
+    startInterval();
+
+    // Listen for visibility changes
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      stopInterval();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [session.isPaused]);
 
   // Track time when changing questions

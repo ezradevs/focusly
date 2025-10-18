@@ -12,6 +12,8 @@ interface QuizState {
   recordAttempt: (sessionId: string, attempt: QuizAttempt) => void;
   completeSession: (sessionId: string, score: number) => void;
   resetSession: (sessionId: string) => void;
+  updateCurrentQuestionIndex: (sessionId: string, index: number) => void;
+  updateDraftAnswer: (sessionId: string, questionId: string, answer: string) => void;
   clear: () => void;
 }
 
@@ -22,6 +24,8 @@ const createNewSession = (questions: GeneratedQuestion[]): QuizSession => ({
   createdAt: Date.now(),
   completedAt: null,
   score: 0,
+  currentQuestionIndex: 0,
+  draftAnswers: {},
 });
 
 type PersistedQuizState = {
@@ -93,6 +97,30 @@ export const useQuizStore = create<QuizState>()(
                   completedAt: null,
                   score: 0,
                   analytics: undefined,
+                  currentQuestionIndex: 0,
+                  draftAnswers: {},
+                }
+              : session
+          ),
+        })),
+      updateCurrentQuestionIndex: (sessionId, index) =>
+        set((state) => ({
+          sessions: state.sessions.map((session) =>
+            session.id === sessionId
+              ? { ...session, currentQuestionIndex: index }
+              : session
+          ),
+        })),
+      updateDraftAnswer: (sessionId, questionId, answer) =>
+        set((state) => ({
+          sessions: state.sessions.map((session) =>
+            session.id === sessionId
+              ? {
+                  ...session,
+                  draftAnswers: {
+                    ...(session.draftAnswers ?? {}),
+                    [questionId]: answer,
+                  },
                 }
               : session
           ),
