@@ -1,6 +1,5 @@
 "use client";
 
-import type { ComponentPropsWithoutRef } from "react";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -17,7 +16,7 @@ interface MarkdownRendererProps {
 
 const components: Components = {
   // Tables with horizontal scroll on mobile
-  table: ({ node, ...props }: ComponentPropsWithoutRef<"table">) => (
+  table: ({ ...props }) => (
     <div className="overflow-x-auto">
       <table
         className="min-w-full divide-y divide-border"
@@ -26,14 +25,14 @@ const components: Components = {
     </div>
   ),
   // Code blocks with proper styling
-  pre: ({ node, ...props }: ComponentPropsWithoutRef<"pre">) => (
+  pre: ({ ...props }) => (
     <pre
       className="overflow-x-auto rounded-lg bg-muted/80 p-4 text-sm"
       {...props}
     />
   ),
   // Inline code with better styling
-  code: ({ node, inline, ...props }: ComponentPropsWithoutRef<"code"> & { inline?: boolean }) => {
+  code: ({ inline, ...props }: { inline?: boolean }) => {
     if (inline) {
       return (
         <code
@@ -45,7 +44,7 @@ const components: Components = {
     return <code {...props} />;
   },
   // Links with security attributes
-  a: ({ node, ...props }: ComponentPropsWithoutRef<"a">) => (
+  a: ({ ...props }) => (
     <a
       target="_blank"
       rel="noopener noreferrer"
