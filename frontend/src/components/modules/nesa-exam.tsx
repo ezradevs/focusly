@@ -40,7 +40,6 @@ import { cn } from "@/lib/utils";
 const formSchema = z.object({
   modules: z.array(z.string()).min(1, "Select at least one module"),
   questionCount: z.number().min(15).max(30),
-  includeMarkingGuide: z.boolean(),
   seed: z.string().optional(),
 });
 
@@ -103,7 +102,6 @@ export function NESAExamModule() {
     defaultValues: {
       modules: [],
       questionCount: 25,
-      includeMarkingGuide: false,
       seed: "",
     },
   });
@@ -140,7 +138,7 @@ export function NESAExamModule() {
       const result = await focuslyApi.generateNESAExam({
         modules: data.modules as NESAModuleName[],
         questionCount: data.questionCount,
-        includeMarkingGuide: data.includeMarkingGuide,
+        includeMarkingGuide: true,
         seed: data.seed || undefined,
       });
       setExam(result);
@@ -602,11 +600,6 @@ export function NESAExamModule() {
                       {...register("seed")}
                     />
                   </div>
-
-                  <label className="flex items-center gap-3">
-                    <Checkbox {...register("includeMarkingGuide")} />
-                    <span className="text-sm">Include marking guide with answers</span>
-                  </label>
 
                   <Button type="submit" disabled={generating} className="w-full">
                     {generating ? (

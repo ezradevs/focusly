@@ -1749,7 +1749,7 @@ Return JSON:
 const nesaExamSchema = z.object({
   modules: z.array(z.enum(["Secure Software Architecture", "Programming for the Web", "Software Engineering Project", "Automation"])).min(1),
   questionCount: z.number().min(15).max(30).default(25),
-  includeMarkingGuide: z.boolean().default(false),
+  includeMarkingGuide: z.boolean().default(true),
   seed: z.string().optional(),
 });
 
@@ -1793,7 +1793,7 @@ const nesaExamResponseSchema = z.object({
       criteria: z.array(z.string()),
       sampleResponse: z.string().optional(),
     })),
-  }).optional(),
+  }),
 });
 
 app.post(
@@ -1846,7 +1846,7 @@ CRITICAL REQUIREMENTS:
     const userPrompt = `Generate a complete NSW HSC Software Engineering practice exam covering: ${modulesText}
 
 Total questions: ${payload.questionCount}
-Include marking guide: ${payload.includeMarkingGuide}
+Include marking guide: Yes
 ${seedInstruction}
 
 REQUIRED QUESTION DISTRIBUTION:
@@ -1960,7 +1960,7 @@ Return JSON matching this exact structure:
       "prompt": "Discuss how machine learning can be integrated into DevOps pipelines to improve software security. In your response, address:\\n(a) The role of ML in automated security testing (3 marks)\\n(b) Potential challenges and limitations (3 marks)\\n(c) Best practices for implementation (2 marks)\\n\\nProvide specific examples from MLOps and DevSecOps practices."
     }
   ],
-  ${payload.includeMarkingGuide ? `"markingGuide": {
+  "markingGuide": {
     "questionAnswers": [
       {
         "questionId": "q1",
@@ -1970,7 +1970,7 @@ Return JSON matching this exact structure:
       },
       // ... answers for all questions
     ]
-  }` : ""}
+  }
 }
 
 IMPORTANT:
@@ -2013,7 +2013,80 @@ IMPORTANT:
         temperature: payload.seed ? 0.3 : 0.7, // Lower temperature for seeded generation
       });
 
-      const candidate = nesaExamResponseSchema.parse(result);
+      // Preprocess to fix common AI formatting issues
+      console.log('[NESA] Starting preprocessing...');
+      const preprocessed = result as any;
+      const validCodeLanguages = ['python', 'sql', 'diagram'];
+
+      if (preprocessed.questions && Array.isArray(preprocessed.questions)) {
+        preprocessed.questions = preprocessed.questions.map((q: any, idx: number) => {
+          // Log codeLanguage for debugging
+          if (q.codeLanguage !== undefined && q.codeLanguage !== null) {
+            console.log(`[NESA] Q${idx}: codeLanguage before processing:`, typeof q.codeLanguage, Array.isArray(q.codeLanguage), q.codeLanguage);
+          }
+
+          // Fix codeLanguage if it's an array - take first element
+          if (q.codeLanguage !== undefined && q.codeLanguage !== null && Array.isArray(q.codeLanguage)) {
+            console.log(`[NESA] Q${idx}: Converting array codeLanguage to first element`);
+            q.codeLanguage = q.codeLanguage[0];
+          }
+
+          // Validate codeLanguage is one of the allowed values
+          if (q.codeLanguage !== undefined && q.codeLanguage !== null && typeof q.codeLanguage === 'string') {
+            if (!validCodeLanguages.includes(q.codeLanguage)) {
+              console.log(`[NESA] Q${idx}: Invalid codeLanguage "${q.codeLanguage}", removing it`);
+              delete q.codeLanguage;
+              // Change question type from 'code' to 'short-answer' if it had invalid language
+              if (q.type === 'code') {
+                console.log(`[NESA] Q${idx}: Changing type from 'code' to 'short-answer'`);
+                q.type = 'short-answer';
+              }
+            }
+          }
+
+          // Remove codeLanguage if question type is not 'code'
+          if (q.type !== 'code' && q.codeLanguage !== undefined && q.codeLanguage !== null) {
+            console.log(`[NESA] Q${idx}: Removing codeLanguage from non-code question (type=${q.type})`);
+            delete q.codeLanguage;
+          }
+          return q;
+        });
+      }
+      console.log('[NESA] Preprocessing complete');
+
+      // Fix marking guide answers that are arrays instead of strings
+      if (preprocessed.markingGuide?.questionAnswers && Array.isArray(preprocessed.markingGuide.questionAnswers)) {
+        preprocessed.markingGuide.questionAnswers = preprocessed.markingGuide.questionAnswers.map((qa: any, idx: number) => {
+          if (qa.answer && Array.isArray(qa.answer)) {
+            console.log(`[NESA] Marking guide answer ${idx} is array, converting to string:`, qa.answer);
+            // If it's a single-element array, take the element; otherwise join with newlines
+            qa.answer = qa.answer.length === 1 ? qa.answer[0] : qa.answer.join('\n');
+          }
+          return qa;
+        });
+      }
+
+      let candidate;
+      try {
+        candidate = nesaExamResponseSchema.parse(preprocessed);
+      } catch (parseError: any) {
+        // Log the actual problematic data for debugging
+        if (parseError.errors) {
+          parseError.errors.forEach((err: any) => {
+            const path = err.path.join('.');
+            console.error(`[NESA Validation Error] Path: ${path}, Message: ${err.message}`);
+            // Log the actual value that failed validation
+            if (err.path.length > 0) {
+              let value = preprocessed;
+              for (const key of err.path) {
+                value = value?.[key];
+              }
+              console.error(`[NESA Validation Error] Actual value:`, value);
+            }
+          });
+        }
+        throw parseError;
+      }
       lastQuestionCount = candidate.questions.length;
 
       if (candidate.questions.length === payload.questionCount) {
