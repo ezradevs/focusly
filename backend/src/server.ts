@@ -1775,6 +1775,7 @@ const nesaExamResponseSchema = z.object({
 
 app.post(
   "/api/nesa/generate",
+  requireAuth,
   aiLimiter,
   withErrorBoundary(async (req, res) => {
     const payload = nesaExamSchema.parse(req.body);
@@ -2010,7 +2011,7 @@ IMPORTANT:
     const createdByName =
       req.currentUser?.name?.trim() ||
       req.currentUser?.email?.split("@")[0] ||
-      "Focusly Learner";
+      null;
 
     await persistModuleOutput({
       module: ModuleType.NESA_SOFTWARE_EXAM,
@@ -2035,9 +2036,26 @@ app.get(
         module: ModuleType.NESA_SOFTWARE_EXAM,
       },
       orderBy: { createdAt: "desc" },
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
     });
 
-    res.json({ exams });
+    const enrichedExams = exams.map(({ user, ...exam }) => ({
+      ...exam,
+      createdByName:
+        exam.createdByName?.trim() ||
+        user?.name?.trim() ||
+        user?.email?.split("@")[0] ||
+        null,
+    }));
+
+    res.json({ exams: enrichedExams });
   })
 );
 
@@ -2058,8 +2076,35 @@ app.put(
       return;
     }
 
-    const exam = await prisma.moduleOutput.findUnique({ where: { id } });
-    res.json({ exam });
+    const exam = await prisma.moduleOutput.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!exam) {
+      res.status(404).json({ error: "Exam not found." });
+      return;
+    }
+
+    const { user, ...rest } = exam;
+
+    res.json({
+      exam: {
+        ...rest,
+        createdByName:
+          exam.createdByName?.trim() ||
+          user?.name?.trim() ||
+          user?.email?.split("@")[0] ||
+          null,
+      },
+    });
   })
 );
 
