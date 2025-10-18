@@ -28,6 +28,32 @@ function normalizeForwardedPath(rawValue) {
   return null;
 }
 
+function extractRewriteHintFromUrl(url) {
+  if (typeof url !== "string") {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(url, "https://placeholder.local");
+    const hint = parsed.searchParams.get("__focusly_path");
+    if (!hint) {
+      return null;
+    }
+
+    parsed.searchParams.delete("__focusly_path");
+
+    const normalizedHint = normalizeForwardedPath(hint);
+    if (!normalizedHint) {
+      return null;
+    }
+
+    const remainingSearch = parsed.searchParams.toString();
+    return remainingSearch ? `${normalizedHint}?${remainingSearch}` : normalizedHint;
+  } catch {
+    return null;
+  }
+}
+
 module.exports = (req, res) => {
   const forwardedPath =
     normalizeForwardedPath(req.headers['x-vercel-forwarded-url']) ||
@@ -42,6 +68,12 @@ module.exports = (req, res) => {
   if (forwardedPath) {
     req.url = forwardedPath;
     req.originalUrl = forwardedPath;
+  } else {
+    const hintedPath = extractRewriteHintFromUrl(req.url);
+    if (hintedPath) {
+      req.url = hintedPath;
+      req.originalUrl = hintedPath;
+    }
   }
 
   if (typeof req.url === 'string' && !req.url.startsWith('/api/')) {
