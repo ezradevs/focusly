@@ -327,7 +327,7 @@ function calculateStats(outputs: ModuleOutputRecord[]) {
     .sort((a, b) => b.getTime() - a.getTime());
 
   let streak = 0;
-  let currentDate = new Date(now.setHours(0, 0, 0, 0));
+  const currentDate = new Date(now.setHours(0, 0, 0, 0));
 
   if (sortedDates.length > 0) {
     const uniqueDates = [...new Set(sortedDates.map(d => d.toDateString()))];
