@@ -71,6 +71,27 @@ export function NESAExamModule() {
     currentUser?.name?.trim().toLowerCase() === "ezra" ||
     currentUser?.email?.split("@")[0]?.toLowerCase() === "ezra";
 
+  const deriveCurrentUserDisplayName = () =>
+    currentUser?.name?.trim() || currentUser?.email?.split("@")[0] || null;
+
+  const applyLocalCreatorAttribution = (records: ModuleOutputRecord[]) => {
+    const localDisplayName = deriveCurrentUserDisplayName();
+    if (!currentUser?.id || !localDisplayName) {
+      return records;
+    }
+
+    return records.map((record) => {
+      const existingName = typeof record.createdByName === "string" ? record.createdByName.trim() : "";
+      if (existingName) {
+        return record;
+      }
+      if (record.userId !== currentUser.id) {
+        return record;
+      }
+      return { ...record, createdByName: localDisplayName };
+    });
+  };
+
   const {
     register,
     handleSubmit,
@@ -91,9 +112,10 @@ export function NESAExamModule() {
 
   useEffect(() => {
     const loadExams = async () => {
+      setLoadingExams(true);
       try {
         const { exams } = await focuslyApi.getNESAExams();
-        setSavedExams(exams);
+        setSavedExams(applyLocalCreatorAttribution(exams));
       } catch (error) {
       } finally {
         setLoadingExams(false);
@@ -101,7 +123,7 @@ export function NESAExamModule() {
     };
 
     loadExams();
-  }, []);
+  }, [currentUser]);
 
   const toggleModule = (module: string) => {
     const current = selectedModules || [];
@@ -131,7 +153,7 @@ export function NESAExamModule() {
 
       // Refresh saved exams list
       const { exams } = await focuslyApi.getNESAExams();
-      setSavedExams(exams);
+      setSavedExams(applyLocalCreatorAttribution(exams));
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to generate exam";
       toast.error(errorMessage);
@@ -199,8 +221,12 @@ export function NESAExamModule() {
     setRenameLoading(true);
     try {
       const { exam: updatedExam } = await focuslyApi.renameNESAExam(editingExamId, trimmed);
+      const [normalizedExam] = applyLocalCreatorAttribution([updatedExam]);
+      const examWithAttribution = normalizedExam ?? updatedExam;
       setSavedExams((prev) =>
-        prev.map((record) => (record.id === editingExamId ? { ...record, ...updatedExam } : record))
+        prev.map((record) =>
+          record.id === editingExamId ? { ...record, ...examWithAttribution } : record
+        )
       );
       toast.success("Exam renamed");
       setEditingExamId(null);

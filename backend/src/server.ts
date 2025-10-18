@@ -413,6 +413,28 @@ type PersistArgs = {
   createdByName?: string | null;
 };
 
+function deriveUserDisplayName(
+  user?: { name?: string | null; email?: string | null },
+  fallback?: string | null
+): string | null {
+  const fromUserName = user?.name?.trim();
+  if (fromUserName) {
+    return fromUserName;
+  }
+
+  const emailHandle = user?.email?.trim()?.split("@")[0];
+  if (emailHandle) {
+    return emailHandle;
+  }
+
+  const fallbackName = fallback?.trim();
+  if (fallbackName) {
+    return fallbackName;
+  }
+
+  return null;
+}
+
 async function persistModuleOutput({
   module,
   subject,
@@ -2008,10 +2030,9 @@ IMPORTANT:
       return;
     }
 
+    const creator = req.currentUser!;
     const createdByName =
-      req.currentUser?.name?.trim() ||
-      req.currentUser?.email?.split("@")[0] ||
-      null;
+      deriveUserDisplayName(creator) ?? "Focusly Learner";
 
     await persistModuleOutput({
       module: ModuleType.NESA_SOFTWARE_EXAM,
@@ -2019,7 +2040,7 @@ IMPORTANT:
       label: `NESA HSC Exam • ${modulesText}`,
       input: payload as JsonValue,
       output: parsedExam as JsonValue,
-      userId: req.currentUser?.id ?? null,
+      userId: creator.id,
       createdByName,
     });
 
@@ -2046,14 +2067,13 @@ app.get(
       },
     });
 
-    const enrichedExams = exams.map(({ user, ...exam }) => ({
-      ...exam,
-      createdByName:
-        exam.createdByName?.trim() ||
-        user?.name?.trim() ||
-        user?.email?.split("@")[0] ||
-        null,
-    }));
+    const enrichedExams = exams.map(({ user, ...exam }) => {
+      const displayName = deriveUserDisplayName(user, exam.createdByName);
+      return {
+        ...exam,
+        createdByName: displayName,
+      };
+    });
 
     res.json({ exams: enrichedExams });
   })
@@ -2098,11 +2118,7 @@ app.put(
     res.json({
       exam: {
         ...rest,
-        createdByName:
-          exam.createdByName?.trim() ||
-          user?.name?.trim() ||
-          user?.email?.split("@")[0] ||
-          null,
+        createdByName: deriveUserDisplayName(user, exam.createdByName),
       },
     });
   })
