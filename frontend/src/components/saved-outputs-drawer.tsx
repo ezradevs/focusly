@@ -29,7 +29,7 @@ import type {
   StoredModuleType,
   SummaryResult,
   GeneratedQuestion,
-  QuizSession,
+  QuizFeedbackResponse,
   FlashcardBuilderResponse,
   ExamResponse,
   PlannerResult,
@@ -183,7 +183,7 @@ export function SavedOutputsDrawer({ open, onOpenChange }: SavedOutputsDrawerPro
         case "QUESTION_SET":
           return <QuestionSetViewer data={output.output as { questions: GeneratedQuestion[] }} />;
         case "QUIZ_SESSION":
-          return <QuizSessionViewer data={output.output as QuizSession} />;
+          return <QuizSessionViewer data={output.output as QuizFeedbackResponse} />;
         case "FLASHCARD_DECK":
           return <FlashcardDeckViewer data={output.output as FlashcardBuilderResponse} />;
         case "EXAM_PACK":

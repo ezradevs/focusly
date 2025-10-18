@@ -4,15 +4,10 @@ import { CheckCircle2, XCircle, AlertCircle, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
-
-interface QuizSessionData {
-  isCorrect: boolean;
-  feedback: string;
-  improvementTips: string[];
-}
+import type { QuizFeedbackResponse } from "@/types";
 
 interface QuizSessionViewerProps {
-  data: QuizSessionData;
+  data: QuizFeedbackResponse;
 }
 
 export function QuizSessionViewer({ data }: QuizSessionViewerProps) {
