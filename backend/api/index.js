@@ -39,9 +39,15 @@ module.exports = (req, res) => {
     normalizeForwardedPath(req.headers['x-original-path']) ||
     normalizeForwardedPath(req.headers['x-forwarded-uri']);
 
-  if (forwardedPath && forwardedPath !== req.url) {
+  if (forwardedPath) {
     req.url = forwardedPath;
     req.originalUrl = forwardedPath;
+  }
+
+  if (typeof req.url === 'string' && !req.url.startsWith('/api/')) {
+    const normalized = req.url.startsWith('/') ? `/api${req.url}` : `/api/${req.url}`;
+    req.url = normalized;
+    req.originalUrl = normalized;
   }
 
   return app(req, res);
