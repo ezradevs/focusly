@@ -1714,7 +1714,16 @@ Return JSON:
 );
 
 const nesaExamSchema = z.object({
-  modules: z.array(z.enum(["Secure Software Architecture", "Programming for the Web", "Software Engineering Project", "Automation"])).min(1),
+  modules: z
+    .array(
+      z.enum([
+        "Secure Software Architecture",
+        "Programming for the Web",
+        "Software Engineering Project",
+        "Automation",
+      ]),
+    )
+    .min(1),
   questionCount: z.number().min(15).max(30).default(25),
   includeMarkingGuide: z.boolean().default(false),
   seed: z.string().optional(),
@@ -1763,6 +1772,10 @@ const nesaExamResponseSchema = z.object({
   }).optional(),
 });
 
+const nesaExamUpdateSchema = z.object({
+  examTitle: z.string().min(3).max(200),
+});
+
 app.post(
   "/api/nesa/generate",
   aiLimiter,
@@ -1770,6 +1783,7 @@ app.post(
     const payload = nesaExamSchema.parse(req.body);
 
     const modulesText = payload.modules.join(", ");
+    const requestedQuestionCount = payload.questionCount;
     const seedInstruction = payload.seed
       ? `Use seed "${payload.seed}" to ensure deterministic generation. Vary the specific details, datasets, and wording while maintaining the same structure and difficulty.`
       : "Generate unique questions while maintaining NESA standards.";
@@ -1811,7 +1825,7 @@ CRITICAL REQUIREMENTS:
 
     const userPrompt = `Generate a complete NSW HSC Software Engineering practice exam covering: ${modulesText}
 
-Total questions: ${payload.questionCount}
+Total questions: ${requestedQuestionCount}
 Include marking guide: ${payload.includeMarkingGuide}
 ${seedInstruction}
 
@@ -1940,7 +1954,7 @@ Return JSON matching this exact structure:
 }
 
 IMPORTANT:
-- Generate ${payload.questionCount} questions total
+- Generate ${requestedQuestionCount} questions total
 - Distribute marks appropriately (total should be 80-100 marks)
 - Code questions MUST specify language (python, sql, or diagram)
 - For SQL questions: MUST include "sqlSampleData" with table name, columns, and 5-10 sample rows
@@ -1948,34 +1962,76 @@ IMPORTANT:
 - All questions must be technically accurate and HSC-appropriate
 - Use realistic, engaging scenarios
 - Maintain professional NESA tone throughout`;
+    const baseMessages = [
+      {
+        role: "system" as const,
+        content: systemPrompt,
+      },
+      {
+        role: "user" as const,
+        content: userPrompt,
+      },
+    ];
 
-    const result = await runChatCompletion({
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt,
-        },
-        {
-          role: "user",
-          content: userPrompt,
-        },
-      ],
-      responseFormat: "json",
-      temperature: payload.seed ? 0.3 : 0.7, // Lower temperature for seeded generation
+    const maxAttempts = 3;
+    let attempt = 0;
+    let lastQuestionCount = 0;
+
+    while (attempt < maxAttempts) {
+      const messages =
+        attempt === 0
+          ? baseMessages
+          : [
+              ...baseMessages,
+              {
+                role: "user" as const,
+                content: `You previously returned ${lastQuestionCount} questions. Regenerate the exam with exactly ${requestedQuestionCount} questions. Do not exceed or fall short of this count.`,
+              },
+            ];
+
+      const result = await runChatCompletion({
+        messages,
+        responseFormat: "json",
+        temperature: payload.seed ? 0.3 : 0.7, // Lower temperature for seeded generation
+      });
+
+      const parsed = nesaExamResponseSchema.parse(result);
+
+      let questions = parsed.questions;
+      if (questions.length > requestedQuestionCount) {
+        questions = questions.slice(0, requestedQuestionCount).map((question, index) => ({
+          ...question,
+          questionNumber: index + 1,
+        }));
+      }
+
+      if (questions.length === requestedQuestionCount) {
+        const totalMarks = questions.reduce((sum, question) => sum + question.marks, 0);
+        const examResponse = {
+          ...parsed,
+          questions,
+          totalMarks,
+        };
+
+        await persistModuleOutput({
+          module: ModuleType.NESA_SOFTWARE_EXAM,
+          subject: "Software Engineering",
+          label: examResponse.examTitle,
+          input: payload as JsonValue,
+          output: examResponse as JsonValue,
+          userId: req.currentUser?.id ?? null,
+        });
+
+        return res.json(examResponse);
+      }
+
+      lastQuestionCount = questions.length;
+      attempt += 1;
+    }
+
+    res.status(500).json({
+      error: "Failed to generate exam with the requested number of questions. Please try again.",
     });
-
-    const parsed = nesaExamResponseSchema.parse(result);
-
-    await persistModuleOutput({
-      module: ModuleType.NESA_SOFTWARE_EXAM,
-      subject: "Software Engineering",
-      label: `NESA HSC Exam • ${modulesText}`,
-      input: payload as JsonValue,
-      output: parsed as JsonValue,
-      userId: null, // NESA exams are always public/shared across all users
-    });
-
-    res.json(parsed);
   })
 );
 
@@ -1988,9 +2044,122 @@ app.get(
         module: ModuleType.NESA_SOFTWARE_EXAM,
       },
       orderBy: { createdAt: "desc" },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
     });
 
-    res.json({ exams });
+    const formatted = exams.map((exam) => ({
+      ...exam,
+      user: exam.user
+        ? {
+            id: exam.user.id,
+            name: exam.user.name,
+            email: exam.user.email,
+          }
+        : null,
+    }));
+
+    res.json({ exams: formatted });
+  })
+);
+
+app.patch(
+  "/api/nesa/exams/:id",
+  requireAuth,
+  withErrorBoundary(async (req, res) => {
+    const { id } = outputIdParamsSchema.parse(req.params);
+    const { examTitle } = nesaExamUpdateSchema.parse(req.body);
+
+    const existing = await prisma.moduleOutput.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!existing || existing.module !== ModuleType.NESA_SOFTWARE_EXAM) {
+      return res.status(404).json({ error: "NESA exam not found." });
+    }
+
+    if (!existing.output || typeof existing.output !== "object" || Array.isArray(existing.output)) {
+      return res.status(400).json({ error: "Unable to update exam title because the stored data is invalid." });
+    }
+
+    const updated = await prisma.moduleOutput.update({
+      where: { id },
+      data: {
+        label: examTitle,
+        output: {
+          ...(existing.output as Record<string, unknown>),
+          examTitle,
+        } as Prisma.InputJsonValue,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    res.json({
+      exam: {
+        ...updated,
+        user: updated.user
+          ? {
+              id: updated.user.id,
+              name: updated.user.name,
+              email: updated.user.email,
+            }
+          : null,
+      },
+    });
+  })
+);
+
+app.delete(
+  "/api/nesa/exams/:id",
+  requireAuth,
+  withErrorBoundary(async (req, res) => {
+    const { id } = outputIdParamsSchema.parse(req.params);
+
+    const existing = await prisma.moduleOutput.findUnique({
+      where: { id },
+    });
+
+    if (!existing || existing.module !== ModuleType.NESA_SOFTWARE_EXAM) {
+      return res.status(404).json({ error: "NESA exam not found." });
+    }
+
+    const userName = req.currentUser?.name?.trim().toLowerCase();
+    if (userName !== "ezra") {
+      return res.status(403).json({
+        error:
+          "Only Focusly administrators can delete shared exams. Please contact Ezra for assistance.",
+      });
+    }
+
+    await prisma.moduleOutput.delete({
+      where: { id },
+    });
+
+    res.json({ success: true });
   })
 );
 

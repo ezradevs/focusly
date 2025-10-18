@@ -317,6 +317,12 @@ export interface ModuleOutputRecord {
   input: unknown;
   output: unknown;
   createdAt: string;
+  userId?: string | null;
+  user?: {
+    id: string;
+    name: string | null;
+    email: string;
+  } | null;
 }
 
 export type ChatRole = "user" | "assistant";

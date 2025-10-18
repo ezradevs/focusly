@@ -315,8 +315,14 @@ export const focuslyApi = {
   getNESAExams: () =>
     request<{ exams: ModuleOutputRecord[] }>("/api/nesa/exams"),
 
+  renameNESAExam: (id: string, payload: { examTitle: string }) =>
+    request<{ exam: ModuleOutputRecord }>(`/api/nesa/exams/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+
   deleteNESAExam: (id: string) =>
-    request<{ success: boolean }>(`/api/outputs/${id}`, {
+    request<{ success: boolean }>(`/api/nesa/exams/${id}`, {
       method: "DELETE",
     }),
 };

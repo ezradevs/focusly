@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { RequireAuth } from "@/components/auth/require-auth";
+import { useAuthStore } from "@/store/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,6 +23,9 @@ import {
   Trash2,
   Calendar,
   BookOpen,
+  Flag,
+  Pencil,
+  UserCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { focuslyApi } from "@/lib/api";
@@ -49,12 +53,20 @@ const NESA_MODULES: NESAModuleName[] = [
 ];
 
 export function NESAExamModule() {
+  const currentUser = useAuthStore((state) => state.user);
   const [generating, setGenerating] = useState(false);
   const [exam, setExam] = useState<NESAExam | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
   const [savedExams, setSavedExams] = useState<ModuleOutputRecord[]>([]);
   const [loadingExams, setLoadingExams] = useState(true);
+  const [activeExamId, setActiveExamId] = useState<string | null>(null);
+  const [flaggedQuestions, setFlaggedQuestions] = useState<Record<string, boolean>>({});
+  const [renamingExamId, setRenamingExamId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameLoading, setRenameLoading] = useState(false);
+  const normalizedUserName = currentUser?.name?.trim().toLowerCase();
+  const isFocuslyAdmin = normalizedUserName === "ezra";
 
   const {
     register,
@@ -109,6 +121,9 @@ export function NESAExamModule() {
       setExam(result);
       setCurrentQuestionIndex(0);
       setUserAnswers({});
+      setActiveExamId(null);
+      setFlaggedQuestions({});
+      setRenamingExamId(null);
       toast.success("Exam generated successfully!");
 
       // Refresh saved exams list
@@ -127,17 +142,32 @@ export function NESAExamModule() {
     setExam(examData);
     setCurrentQuestionIndex(0);
     setUserAnswers({});
+    setActiveExamId(savedExam.id);
+    setFlaggedQuestions({});
   };
 
   const handleDeleteExam = async (id: string) => {
+    if (!isFocuslyAdmin) {
+      toast.error(
+        "Only Focusly administrators can remove shared exams. Everyone has access to these study sets—please contact Ezra if you need one removed."
+      );
+      return;
+    }
+
     try {
       await focuslyApi.deleteNESAExam(id);
       setSavedExams((prev) => prev.filter((e) => e.id !== id));
       toast.success("Exam deleted");
 
+      if (renamingExamId === id) {
+        handleCancelRename();
+      }
+
       // If the currently active exam was deleted, clear it
-      if (exam && savedExams.find(e => e.id === id && (e.output as NESAExam).examTitle === exam.examTitle)) {
+      if (activeExamId === id) {
         setExam(null);
+        setActiveExamId(null);
+        setFlaggedQuestions({});
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to delete exam";
@@ -145,8 +175,65 @@ export function NESAExamModule() {
     }
   };
 
+  const handleStartRename = (savedExam: ModuleOutputRecord) => {
+    const examData = savedExam.output as NESAExam;
+    setRenamingExamId(savedExam.id);
+    setRenameValue(examData.examTitle || savedExam.label || "");
+  };
+
+  const handleCancelRename = () => {
+    setRenamingExamId(null);
+    setRenameValue("");
+  };
+
+  const handleRenameSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!renamingExamId) return;
+
+    const trimmedName = renameValue.trim();
+    if (!trimmedName) {
+      toast.error("Exam name cannot be empty");
+      return;
+    }
+
+    setRenameLoading(true);
+    try {
+      const { exam: updatedExam } = await focuslyApi.renameNESAExam(renamingExamId, {
+        examTitle: trimmedName,
+      });
+      setSavedExams((prev) =>
+        prev.map((examRecord) => (examRecord.id === renamingExamId ? updatedExam : examRecord))
+      );
+
+      if (activeExamId === renamingExamId && exam) {
+        const updatedExamData = updatedExam.output as NESAExam;
+        setExam(updatedExamData);
+      }
+
+      toast.success("Exam renamed");
+      handleCancelRename();
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to rename exam";
+      toast.error(errorMessage);
+    } finally {
+      setRenameLoading(false);
+    }
+  };
+
   const handleAnswerChange = (questionId: string, answer: string) => {
     setUserAnswers((prev) => ({ ...prev, [questionId]: answer }));
+  };
+
+  const toggleFlagQuestion = (questionId: string) => {
+    setFlaggedQuestions((prev) => {
+      const next = { ...prev };
+      if (next[questionId]) {
+        delete next[questionId];
+      } else {
+        next[questionId] = true;
+      }
+      return next;
+    });
   };
 
   const exportExamAsJSON = () => {
@@ -162,6 +249,7 @@ export function NESAExamModule() {
   };
 
   const currentQuestion = exam?.questions[currentQuestionIndex];
+  const flaggedCount = Object.values(flaggedQuestions).filter(Boolean).length;
 
   const renderQuestion = (question: NESAQuestion) => {
     switch (question.type) {
@@ -279,291 +367,425 @@ export function NESAExamModule() {
     }
   };
 
-  if (!exam) {
-    return (
-      <RequireAuth>
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-          className="space-y-6"
-        >
-          {/* Banner */}
-          <Card className="border-primary/10 bg-gradient-to-br from-violet-400/20 via-fuchsia-200/20 to-pink-600/20">
-            <CardHeader className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Code2 className="h-6 w-6 text-primary" />
-                <CardTitle className="text-2xl font-semibold">NESA Software Engineering Exam</CardTitle>
-              </div>
-              <CardDescription className="text-base">
-                Generate realistic NSW HSC practice exams with interactive Python, SQL, and diagram questions.
-              </CardDescription>
-              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                <Badge variant="outline">4 HSC Modules</Badge>
-                <Badge variant="outline">Interactive Code Editor</Badge>
-                <Badge variant="outline">SQL & Diagram Questions</Badge>
-              </div>
-            </CardHeader>
-          </Card>
-
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25, delay: 0.1 }}
-            className="space-y-6"
-          >
-            {(loadingExams || savedExams.length > 0) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5" />
-                    Saved Exams
-                  </CardTitle>
-                  <CardDescription>
-                    Continue or delete your previous exams
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {loadingExams ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : savedExams.length > 0 ? (
-                      savedExams.map((savedExam, index) => {
-                        const examData = savedExam.output as NESAExam;
-                        return (
-                          <motion.div
-                            key={savedExam.id}
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.2, delay: index * 0.05 }}
-                            className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition"
-                          >
-                            <div className="flex-1">
-                              <h3 className="font-medium">{examData.examTitle}</h3>
-                              <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  {format(new Date(savedExam.createdAt), "MMM d, yyyy")}
-                                </span>
-                                <span>{examData.totalMarks} marks</span>
-                                <span>{examData.questions.length} questions</span>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleContinueExam(savedExam)}
-                              >
-                                Continue
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteExam(savedExam.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </div>
-                          </motion.div>
-                        );
-                      })
-                    ) : null}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Generate Exam</CardTitle>
-              <CardDescription>
-                Configure your practice exam settings below
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <div className="space-y-3">
-                <Label>Select Modules to Include</Label>
-                <div className="grid grid-cols-1 gap-2">
-                  {NESA_MODULES.map((module) => (
-                    <label
-                      key={module}
-                      className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition"
-                    >
-                      <Checkbox
-                        checked={selectedModules?.includes(module)}
-                        onCheckedChange={() => toggleModule(module)}
-                      />
-                      <span>{module}</span>
-                    </label>
-                  ))}
-                </div>
-                {errors.modules && (
-                  <p className="text-sm text-destructive">{errors.modules.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="questionCount">Number of Questions (15-30)</Label>
-                <Input
-                  id="questionCount"
-                  type="number"
-                  min={15}
-                  max={30}
-                  {...register("questionCount", { valueAsNumber: true })}
-                />
-                {errors.questionCount && (
-                  <p className="text-sm text-destructive">{errors.questionCount.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="seed">Seed (optional, for deterministic generation)</Label>
-                <Input
-                  id="seed"
-                  placeholder="e.g., exam-2024-practice-1"
-                  {...register("seed")}
-                />
-              </div>
-
-              <label className="flex items-center gap-3">
-                <Checkbox {...register("includeMarkingGuide")} />
-                <span className="text-sm">Include marking guide with answers</span>
-              </label>
-
-              <Button type="submit" disabled={generating} className="w-full">
-                {generating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating Exam...
-                  </>
-                ) : (
-                  <>
-                    <FileText className="mr-2 h-4 w-4" />
-                    Generate Exam
-                  </>
-                )}
-              </Button>
-            </form>
-          </CardContent>
-          </Card>
-          </motion.div>
-        </motion.div>
-      </RequireAuth>
-    );
-  }
+    const currentQuestion = exam?.questions[currentQuestionIndex];
+  const flaggedCount = Object.values(flaggedQuestions).filter(Boolean).length;
 
   return (
     <RequireAuth>
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25 }}
-        className="space-y-6"
-      >
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div>
-              <CardTitle>{exam.examTitle}</CardTitle>
-              <CardDescription>
-                Total Marks: {exam.totalMarks} | Time Allowed: {exam.timeAllowed} minutes
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={exportExamAsJSON}>
-                <Download className="h-4 w-4 mr-2" />
-                Export JSON
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setExam(null)}>
-                New Exam
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <h3 className="font-semibold">Instructions:</h3>
-            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-              {exam.instructions.map((instruction, idx) => (
-                <li key={idx}>{instruction}</li>
-              ))}
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
-
-      {currentQuestion && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <CardTitle className="flex items-center gap-3">
-                  Question {currentQuestion.questionNumber}
-                  <Badge>{currentQuestion.marks} {currentQuestion.marks === 1 ? "mark" : "marks"}</Badge>
-                  <Badge variant="outline">{currentQuestion.type.toUpperCase()}</Badge>
-                </CardTitle>
-                <CardDescription>
-                  {currentQuestion.modules.join(", ")}
+      <AnimatePresence mode="wait">
+        {!exam ? (
+          <motion.div
+            key="nesa-generator"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-6"
+          >
+            {/* Banner */}
+            <Card className="border-primary/10 bg-gradient-to-br from-violet-400/20 via-fuchsia-200/20 to-pink-600/20">
+              <CardHeader className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Code2 className="h-6 w-6 text-primary" />
+                  <CardTitle className="text-2xl font-semibold">NESA Software Engineering Exam</CardTitle>
+                </div>
+                <CardDescription className="text-base">
+                  Generate realistic NSW HSC practice exams with interactive Python, SQL, and diagram questions.
                 </CardDescription>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {currentQuestionIndex + 1} / {exam.questions.length}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {renderQuestion(currentQuestion)}
+                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                  <Badge variant="outline">4 HSC Modules</Badge>
+                  <Badge variant="outline">Interactive Code Editor</Badge>
+                  <Badge variant="outline">SQL & Diagram Questions</Badge>
+                </div>
+              </CardHeader>
+            </Card>
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 16 }}
+              transition={{ duration: 0.25, delay: 0.1 }}
+              className="space-y-6"
+            >
+              {(loadingExams || savedExams.length > 0) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BookOpen className="h-5 w-5" />
+                      Saved Exams
+                    </CardTitle>
+                    <CardDescription>
+                      Continue or manage your shared exams
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {loadingExams ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : savedExams.length > 0 ? (
+                        savedExams.map((savedExam, index) => {
+                          const examData = savedExam.output as NESAExam;
+                          const generatedBy = savedExam.user?.name?.trim()
+                            ? savedExam.user.name
+                            : savedExam.user?.email ?? "Focusly AI";
+                          const isRenaming = renamingExamId === savedExam.id;
+                          return (
+                            <motion.div
+                              key={savedExam.id}
+                              initial={{ opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.2, delay: index * 0.05 }}
+                              className="p-4 border rounded-lg hover:bg-muted/50 transition"
+                            >
+                              {isRenaming ? (
+                                <form onSubmit={handleRenameSubmit} className="w-full space-y-3">
+                                  <div className="space-y-2">
+                                    <Label htmlFor={`rename-${savedExam.id}`} className="text-sm font-medium">
+                                      Rename exam
+                                    </Label>
+                                    <Input
+                                      id={`rename-${savedExam.id}`}
+                                      value={renameValue}
+                                      onChange={(event) => setRenameValue(event.target.value)}
+                                      disabled={renameLoading}
+                                      autoFocus
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Button type="submit" size="sm" disabled={renameLoading || !renameValue.trim()}>
+                                      {renameLoading ? (
+                                        <>
+                                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                          Saving
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Pencil className="h-4 w-4 mr-2" />
+                                          Save Name
+                                        </>
+                                      )}
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={handleCancelRename}
+                                      disabled={renameLoading}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </form>
+                              ) : (
+                                <div className="flex w-full items-center justify-between gap-4">
+                                  <div className="flex-1">
+                                    <h3 className="font-medium">{examData.examTitle}</h3>
+                                    <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                                      <span className="flex items-center gap-1">
+                                        <Calendar className="h-3 w-3" />
+                                        {format(new Date(savedExam.createdAt), "MMM d, yyyy")}
+                                      </span>
+                                      <span>{examData.totalMarks} marks</span>
+                                      <span>{examData.questions.length} questions</span>
+                                      <span className="flex items-center gap-1">
+                                        <UserCircle2 className="h-3 w-3" />
+                                        {generatedBy}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      variant={activeExamId === savedExam.id ? "default" : "outline"}
+                                      size="sm"
+                                      onClick={() => handleContinueExam(savedExam)}
+                                    >
+                                      Continue
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleStartRename(savedExam)}
+                                    >
+                                      <Pencil className="h-4 w-4 mr-2" />
+                                      Rename
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      title={
+                                        isFocuslyAdmin
+                                          ? undefined
+                                          : "Only Focusly administrators can remove shared exams"
+                                      }
+                                      onClick={() => handleDeleteExam(savedExam.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
+                            </motion.div>
+                          );
+                        })
+                      ) : null}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-            <div className="flex justify-between pt-4">
-              <Button
-                variant="outline"
-                onClick={() => setCurrentQuestionIndex((prev) => Math.max(0, prev - 1))}
-                disabled={currentQuestionIndex === 0}
-              >
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                Previous
-              </Button>
-              <Button
-                onClick={() =>
-                  setCurrentQuestionIndex((prev) =>
-                    Math.min(exam.questions.length - 1, prev + 1)
-                  )
-                }
-                disabled={currentQuestionIndex === exam.questions.length - 1}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-2" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Generate Exam</CardTitle>
+                  <CardDescription>
+                    Configure your practice exam settings below
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                    <div className="space-y-3">
+                      <Label>Select Modules to Include</Label>
+                      <div className="grid grid-cols-1 gap-2">
+                        {NESA_MODULES.map((module) => (
+                          <label
+                            key={module}
+                            className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition"
+                          >
+                            <Checkbox
+                              checked={selectedModules?.includes(module)}
+                              onCheckedChange={() => toggleModule(module)}
+                            />
+                            <span>{module}</span>
+                          </label>
+                        ))}
+                      </div>
+                      {errors.modules && (
+                        <p className="text-sm text-destructive">{errors.modules.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="questionCount">Number of Questions</Label>
+                      <Input
+                        id="questionCount"
+                        type="number"
+                        min={15}
+                        max={30}
+                        {...register("questionCount", { valueAsNumber: true })}
+                      />
+                      <p className="text-xs text-muted-foreground">Choose between 15 and 30 questions.</p>
+                      {errors.questionCount && (
+                        <p className="text-sm text-destructive">{errors.questionCount.message}</p>
+                      )}
+                    </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Question Navigator</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {exam.questions.map((q, idx) => (
-              <Button
-                key={q.id}
-                variant={idx === currentQuestionIndex ? "default" : "outline"}
-                size="sm"
-                onClick={() => setCurrentQuestionIndex(idx)}
-                className={userAnswers[q.id] ? "border-green-500" : ""}
-              >
-                Q{q.questionNumber}
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-      </motion.div>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="includeMarkingGuide"
+                        {...register("includeMarkingGuide")}
+                        onCheckedChange={(checked) => setValue("includeMarkingGuide", Boolean(checked))}
+                      />
+                      <div className="space-y-1">
+                        <Label htmlFor="includeMarkingGuide">Include Marking Guide</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Add detailed marking criteria and sample answers for each question.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="seed">Optional: Provide a Topic or Key Focus</Label>
+                      <Input id="seed" placeholder="e.g. Software Development Life Cycle" {...register("seed")} />
+                      <p className="text-xs text-muted-foreground">
+                        Use this to steer the AI towards a particular focus area.
+                      </p>
+                    </div>
+
+                    <Button type="submit" className="w-full" disabled={generating}>
+                      {generating ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Generating Exam...
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="mr-2 h-4 w-4" />
+                          Generate Exam
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key={`nesa-exam-${activeExamId ?? exam.examTitle ?? "active"}`}
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -16, scale: 0.98 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="space-y-6"
+          >
+            <Card>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle>{exam.examTitle}</CardTitle>
+                    <CardDescription>
+                      Total Marks: {exam.totalMarks} | Time Allowed: {exam.timeAllowed} minutes
+                    </CardDescription>
+                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.1 }}
+                    className="flex gap-2"
+                  >
+                    <Button variant="outline" size="sm" onClick={exportExamAsJSON}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Export JSON
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setExam(null);
+                        setActiveExamId(null);
+                        setFlaggedQuestions({});
+                        setUserAnswers({});
+                        setCurrentQuestionIndex(0);
+                      }}
+                    >
+                      New Exam
+                    </Button>
+                  </motion.div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <h3 className="font-semibold">Instructions:</h3>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                    {exam.instructions.map((instruction, idx) => (
+                      <li key={idx}>{instruction}</li>
+                    ))}
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+
+            <AnimatePresence mode="wait">
+              {currentQuestion && (
+                <motion.div
+                  key={currentQuestion.id}
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -24 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                >
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <CardTitle className="flex items-center gap-3">
+                            Question {currentQuestion.questionNumber}
+                            <Badge>{currentQuestion.marks} {currentQuestion.marks === 1 ? "mark" : "marks"}</Badge>
+                            <Badge variant="outline">{currentQuestion.type.toUpperCase()}</Badge>
+                          </CardTitle>
+                          <CardDescription>
+                            {currentQuestion.modules.join(", ")}
+                          </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toggleFlagQuestion(currentQuestion.id)}
+                            className={`flex items-center gap-2 ${
+                              flaggedQuestions[currentQuestion.id]
+                                ? "border-amber-500 bg-amber-50 text-amber-700"
+                                : ""
+                            }`}
+                          >
+                            <Flag className="h-4 w-4" />
+                            {flaggedQuestions[currentQuestion.id] ? "Unflag" : "Flag"}
+                          </Button>
+                          <div className="text-sm text-muted-foreground">
+                            {currentQuestionIndex + 1} / {exam.questions.length}
+                          </div>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {renderQuestion(currentQuestion)}
+
+                      <div className="flex justify-between pt-4">
+                        <Button
+                          variant="outline"
+                          onClick={() => setCurrentQuestionIndex((prev) => Math.max(0, prev - 1))}
+                          disabled={currentQuestionIndex === 0}
+                        >
+                          <ChevronLeft className="h-4 w-4 mr-2" />
+                          Previous
+                        </Button>
+                        <Button
+                          onClick={() =>
+                            setCurrentQuestionIndex((prev) =>
+                              Math.min(exam.questions.length - 1, prev + 1)
+                            )
+                          }
+                          disabled={currentQuestionIndex === exam.questions.length - 1}
+                        >
+                          Next
+                          <ChevronRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Question Navigator</CardTitle>
+                <CardDescription>
+                  {flaggedCount > 0
+                    ? `${flaggedCount} question${flaggedCount === 1 ? "" : "s"} flagged`
+                    : "Flag questions to review later"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {exam.questions.map((q, idx) => (
+                    <Button
+                      key={q.id}
+                      asChild
+                      variant={idx === currentQuestionIndex ? "default" : "outline"}
+                      size="sm"
+                      className={`relative ${
+                        userAnswers[q.id] ? "border-green-500" : ""
+                      } ${flaggedQuestions[q.id] ? "ring-2 ring-amber-500" : ""}`}
+                    >
+                      <motion.button
+                        type="button"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setCurrentQuestionIndex(idx)}
+                      >
+                        Q{q.questionNumber}
+                        {flaggedQuestions[q.id] && (
+                          <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-amber-500" />
+                        )}
+                      </motion.button>
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </RequireAuth>
   );
 }
