@@ -410,9 +410,18 @@ type PersistArgs = {
   input: JsonValue;
   output: JsonValue;
   userId?: string | null;
+  createdByName?: string | null;
 };
 
-async function persistModuleOutput({ module, subject, label, input, output, userId }: PersistArgs) {
+async function persistModuleOutput({
+  module,
+  subject,
+  label,
+  input,
+  output,
+  userId,
+  createdByName,
+}: PersistArgs) {
   try {
     await prisma.moduleOutput.create({
       data: {
@@ -422,6 +431,7 @@ async function persistModuleOutput({ module, subject, label, input, output, user
         input,
         output,
         userId: userId ?? null,
+        createdByName: createdByName ?? null,
       },
     });
   } catch (error) {
@@ -1949,33 +1959,70 @@ IMPORTANT:
 - Use realistic, engaging scenarios
 - Maintain professional NESA tone throughout`;
 
-    const result = await runChatCompletion({
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt,
-        },
-        {
-          role: "user",
-          content: userPrompt,
-        },
-      ],
-      responseFormat: "json",
-      temperature: payload.seed ? 0.3 : 0.7, // Lower temperature for seeded generation
-    });
+    const baseMessages = [
+      {
+        role: "system" as const,
+        content: systemPrompt,
+      },
+      {
+        role: "user" as const,
+        content: userPrompt,
+      },
+    ];
 
-    const parsed = nesaExamResponseSchema.parse(result);
+    const maxAttempts = 3;
+    let parsedExam: z.infer<typeof nesaExamResponseSchema> | null = null;
+    let lastQuestionCount: number | null = null;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const attemptMessages = [...baseMessages];
+      if (attempt > 0 && lastQuestionCount !== null) {
+        attemptMessages.push({
+          role: "system" as const,
+          content: `The previous attempt produced ${lastQuestionCount} questions. Regenerate the exam so that it contains exactly ${payload.questionCount} questions. Do not add extra commentary and ensure the JSON matches the required schema.`,
+        });
+      }
+
+      const result = await runChatCompletion({
+        messages: attemptMessages,
+        responseFormat: "json",
+        temperature: payload.seed ? 0.3 : 0.7, // Lower temperature for seeded generation
+      });
+
+      const candidate = nesaExamResponseSchema.parse(result);
+      lastQuestionCount = candidate.questions.length;
+
+      if (candidate.questions.length === payload.questionCount) {
+        parsedExam = candidate;
+        break;
+      }
+
+      parsedExam = candidate;
+    }
+
+    if (!parsedExam || parsedExam.questions.length !== payload.questionCount) {
+      res.status(502).json({
+        error: `The generator could not create exactly ${payload.questionCount} questions after multiple attempts. Please try again.`,
+      });
+      return;
+    }
+
+    const createdByName =
+      req.currentUser?.name?.trim() ||
+      req.currentUser?.email?.split("@")[0] ||
+      "Focusly Learner";
 
     await persistModuleOutput({
       module: ModuleType.NESA_SOFTWARE_EXAM,
       subject: "Software Engineering",
       label: `NESA HSC Exam • ${modulesText}`,
       input: payload as JsonValue,
-      output: parsed as JsonValue,
-      userId: null, // NESA exams are always public/shared across all users
+      output: parsedExam as JsonValue,
+      userId: req.currentUser?.id ?? null,
+      createdByName,
     });
 
-    res.json(parsed);
+    res.json(parsedExam);
   })
 );
 
@@ -1991,6 +2038,59 @@ app.get(
     });
 
     res.json({ exams });
+  })
+);
+
+app.put(
+  "/api/nesa/exams/:id",
+  requireAuth,
+  withErrorBoundary(async (req, res) => {
+    const { id } = outputIdParamsSchema.parse(req.params);
+    const { label } = outputUpdateSchema.parse(req.body);
+
+    const updated = await prisma.moduleOutput.updateMany({
+      where: { id, module: ModuleType.NESA_SOFTWARE_EXAM },
+      data: { label },
+    });
+
+    if (updated.count === 0) {
+      res.status(404).json({ error: "Exam not found." });
+      return;
+    }
+
+    const exam = await prisma.moduleOutput.findUnique({ where: { id } });
+    res.json({ exam });
+  })
+);
+
+app.delete(
+  "/api/nesa/exams/:id",
+  requireAuth,
+  withErrorBoundary(async (req, res) => {
+    const normalizedName = req.currentUser?.name?.trim().toLowerCase();
+    const normalizedHandle = req.currentUser?.email?.split("@")[0]?.toLowerCase();
+    const isEzra = normalizedName === "ezra" || normalizedHandle === "ezra";
+
+    if (!isEzra) {
+      res.status(403).json({
+        error:
+          "Only Focusly administrator Ezra can delete shared exams. Everyone can access generated exams—please contact Ezra for assistance.",
+      });
+      return;
+    }
+
+    const { id } = outputIdParamsSchema.parse(req.params);
+
+    const deleted = await prisma.moduleOutput.deleteMany({
+      where: { id, module: ModuleType.NESA_SOFTWARE_EXAM },
+    });
+
+    if (deleted.count === 0) {
+      res.status(404).json({ error: "Exam not found." });
+      return;
+    }
+
+    res.json({ success: true });
   })
 );
 
