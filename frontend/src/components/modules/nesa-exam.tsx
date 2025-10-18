@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { motion } from "framer-motion";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -281,80 +282,108 @@ export function NESAExamModule() {
   if (!exam) {
     return (
       <RequireAuth>
-        <div className="space-y-6">
-        {savedExams.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          className="space-y-6"
+        >
+          {/* Banner */}
+          <Card className="border-primary/10 bg-gradient-to-br from-violet-400/20 via-fuchsia-200/20 to-pink-600/20">
+            <CardHeader className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Code2 className="h-6 w-6 text-primary" />
+                <CardTitle className="text-2xl font-semibold">NESA Software Engineering Exam</CardTitle>
+              </div>
+              <CardDescription className="text-base">
+                Generate realistic NSW HSC practice exams with interactive Python, SQL, and diagram questions.
+              </CardDescription>
+              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <Badge variant="outline">4 HSC Modules</Badge>
+                <Badge variant="outline">Interactive Code Editor</Badge>
+                <Badge variant="outline">SQL & Diagram Questions</Badge>
+              </div>
+            </CardHeader>
+          </Card>
+
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, delay: 0.1 }}
+            className="space-y-6"
+          >
+            {(loadingExams || savedExams.length > 0) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5" />
+                    Saved Exams
+                  </CardTitle>
+                  <CardDescription>
+                    Continue or delete your previous exams
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {loadingExams ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : savedExams.length > 0 ? (
+                      savedExams.map((savedExam, index) => {
+                        const examData = savedExam.output as NESAExam;
+                        return (
+                          <motion.div
+                            key={savedExam.id}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2, delay: index * 0.05 }}
+                            className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition"
+                          >
+                            <div className="flex-1">
+                              <h3 className="font-medium">{examData.examTitle}</h3>
+                              <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {format(new Date(savedExam.createdAt), "MMM d, yyyy")}
+                                </span>
+                                <span>{examData.totalMarks} marks</span>
+                                <span>{examData.questions.length} questions</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleContinueExam(savedExam)}
+                              >
+                                Continue
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteExam(savedExam.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </motion.div>
+                        );
+                      })
+                    ) : null}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5" />
-                Saved Exams
-              </CardTitle>
+              <CardTitle>Generate Exam</CardTitle>
               <CardDescription>
-                Continue or delete your previous exams
+                Configure your practice exam settings below
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {loadingExams ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : (
-                  savedExams.map((savedExam) => {
-                    const examData = savedExam.output as NESAExam;
-                    return (
-                      <div
-                        key={savedExam.id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition"
-                      >
-                        <div className="flex-1">
-                          <h3 className="font-medium">{examData.examTitle}</h3>
-                          <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {format(new Date(savedExam.createdAt), "MMM d, yyyy")}
-                            </span>
-                            <span>{examData.totalMarks} marks</span>
-                            <span>{examData.questions.length} questions</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleContinueExam(savedExam)}
-                          >
-                            Continue
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteExam(savedExam.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Code2 className="h-6 w-6 text-primary" />
-              <CardTitle className="text-xl font-semibold">Generate NESA Software Engineering Exam</CardTitle>
-            </div>
-            <CardDescription>
-              Create a realistic NSW HSC Software Engineering practice exam with interactive
-              coding, SQL, and diagram questions
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div className="space-y-3">
                 <Label>Select Modules to Include</Label>
@@ -420,15 +449,21 @@ export function NESAExamModule() {
               </Button>
             </form>
           </CardContent>
-        </Card>
-      </div>
+          </Card>
+          </motion.div>
+        </motion.div>
       </RequireAuth>
     );
   }
 
   return (
     <RequireAuth>
-      <div className="space-y-6">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="space-y-6"
+      >
       <Card>
         <CardHeader>
           <div className="flex items-start justify-between">
@@ -528,7 +563,7 @@ export function NESAExamModule() {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </motion.div>
     </RequireAuth>
   );
 }

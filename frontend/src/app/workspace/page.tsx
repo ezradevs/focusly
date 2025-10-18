@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import type { ModuleId } from "@/constants/modules";
 import { usePreferencesStore } from "@/store/preferences";
@@ -28,6 +28,11 @@ export default function WorkspacePage() {
 
   const [activeModule, setActiveModule] = useState<ModuleId>(lastModule);
   const [isResendingVerification, setIsResendingVerification] = useState(false);
+
+  // Sync activeModule when persisted lastModule loads from localStorage
+  useEffect(() => {
+    setActiveModule(lastModule);
+  }, [lastModule]);
 
   const isLoggedIn = status === "authenticated" && user;
   const isEmailVerified = isLoggedIn && user.emailVerified;
