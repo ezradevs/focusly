@@ -50,4 +50,5 @@ model ModuleOutput {
   createdAt DateTime   @default(now())
   userId    String?
   user      User?      @relation(fields: [userId], references: [id])
+  createdByName String?
 }

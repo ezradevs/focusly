@@ -317,6 +317,8 @@ export interface ModuleOutputRecord {
   input: unknown;
   output: unknown;
   createdAt: string;
+  createdByName?: string | null;
+  userId?: string | null;
 }
 
 export type ChatRole = "user" | "assistant";

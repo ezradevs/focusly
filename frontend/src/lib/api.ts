@@ -69,7 +69,11 @@ async function request<T>(
       .json()
       .catch(() => ({ error: response.statusText }));
 
-    throw new Error(message.error ?? "Unexpected server error");
+    const error = new Error(message.error ?? "Unexpected server error") as Error & {
+      status?: number;
+    };
+    error.status = response.status;
+    throw error;
   }
 
   return response.json() as Promise<T>;
@@ -315,8 +319,14 @@ export const focuslyApi = {
   getNESAExams: () =>
     request<{ exams: ModuleOutputRecord[] }>("/api/nesa/exams"),
 
+  renameNESAExam: (id: string, label: string) =>
+    request<{ exam: ModuleOutputRecord }>(`/api/nesa/exams/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ label }),
+    }),
+
   deleteNESAExam: (id: string) =>
-    request<{ success: boolean }>(`/api/outputs/${id}`, {
+    request<{ success: boolean }>(`/api/nesa/exams/${id}`, {
       method: "DELETE",
     }),
 };
