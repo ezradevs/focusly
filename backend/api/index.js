@@ -32,11 +32,16 @@ module.exports = (req, res) => {
   const forwardedPath =
     normalizeForwardedPath(req.headers['x-vercel-forwarded-url']) ||
     normalizeForwardedPath(req.headers['x-vercel-forwarded-path']) ||
+    normalizeForwardedPath(req.headers['x-forwarded-path']) ||
+    normalizeForwardedPath(req.headers['x-vercel-matched-path']) ||
+    normalizeForwardedPath(req.headers['x-matched-path']) ||
+    normalizeForwardedPath(req.headers['x-original-url']) ||
     normalizeForwardedPath(req.headers['x-original-path']) ||
     normalizeForwardedPath(req.headers['x-forwarded-uri']);
 
   if (forwardedPath && forwardedPath !== req.url) {
     req.url = forwardedPath;
+    req.originalUrl = forwardedPath;
   }
 
   return app(req, res);
